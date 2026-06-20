@@ -128,6 +128,45 @@ pub fn match_bulk(
     })
 }
 
+/// Resolve many Spotify track IDs to metadata **concurrently** (the embed fetches
+/// are blocking ureq calls run on the Tokio blocking pool). Preserves order and
+/// drops the few that fail. `on_progress(done)` streams; `cancel` stops early.
+pub fn resolve_spotify(
+    ids: &[String],
+    concurrency: usize,
+    cancel: &AtomicBool,
+    mut on_progress: impl FnMut(usize),
+) -> Vec<ParsedTrack> {
+    use futures::stream::{self, StreamExt};
+
+    runtime().block_on(async move {
+        let mut indexed: Vec<(usize, ParsedTrack)> = Vec::with_capacity(ids.len());
+        let mut stream = stream::iter(ids.iter().cloned().enumerate())
+            .map(|(i, id)| async move {
+                let p = tokio::task::spawn_blocking(move || crate::core::spotify_import::resolve_id(&id))
+                    .await
+                    .ok()
+                    .flatten();
+                (i, p)
+            })
+            .buffer_unordered(concurrency.max(1));
+
+        let mut done = 0usize;
+        while let Some((i, p)) = stream.next().await {
+            if cancel.load(Ordering::Relaxed) {
+                break;
+            }
+            done += 1;
+            on_progress(done);
+            if let Some(p) = p {
+                indexed.push((i, p));
+            }
+        }
+        indexed.sort_by_key(|(i, _)| *i);
+        indexed.into_iter().map(|(_, p)| p).collect()
+    })
+}
+
 fn track_from_item(t: rustypipe::model::TrackItem) -> Track {
     let secs = t.duration.unwrap_or(0);
     let artist = t.artists.into_iter().map(|a| a.name).collect::<Vec<_>>().join(", ");
@@ -183,5 +222,31 @@ mod tests {
         }
         assert_eq!(rows.len(), parsed.len());
         assert!(rows.iter().all(|r| !r.candidates.is_empty()), "some rows had no match");
+    }
+
+    // End-to-end on the real Spotify URL dump: extract ids → resolve metadata →
+    // match on YouTube Music.
+    #[test]
+    #[ignore]
+    fn live_spotify_import() {
+        use std::sync::atomic::AtomicBool;
+        let text = std::fs::read_to_string("D:/junk/spotify.txt").expect("read spotify.txt");
+        let ids = crate::core::spotify_import::extract_track_ids(&text);
+        println!("extracted {} track ids", ids.len());
+        let sample: Vec<String> = ids.into_iter().take(10).collect();
+        let cancel = AtomicBool::new(false);
+        let parsed = super::resolve_spotify(&sample, 8, &cancel, |_| {});
+        for p in &parsed {
+            println!("  SPOTIFY: {} — {} ({})", p.title, p.artist, p.duration);
+        }
+        let rows = super::match_bulk(&parsed, 1, 8, &cancel, |_, _| {});
+        for r in &rows {
+            let best = r.candidates.first().map(|t| format!("{} — {}", t.title, t.artist));
+            println!("  YT[{}]: {} -> {:?}", r.index, parsed[r.index].title, best);
+        }
+        let matched = rows.iter().filter(|r| !r.candidates.is_empty()).count();
+        println!("MATCHED {}/{}", matched, parsed.len());
+        assert!(!parsed.is_empty(), "spotify resolution returned nothing");
+        assert!(matched * 2 >= parsed.len(), "less than half matched");
     }
 }

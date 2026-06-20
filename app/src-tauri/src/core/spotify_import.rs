@@ -12,7 +12,108 @@
 //! The output is matched against the catalog (see `catalog::search`) elsewhere;
 //! this module's only job is text → structured `ParsedTrack`s.
 
+use crate::core::error::Result;
 use crate::core::models::ParsedTrack;
+
+/// Pull Spotify **track IDs** out of pasted text. Copying tracks in the Spotify
+/// desktop app puts a list of `https://open.spotify.com/track/<id>` URLs (or
+/// `spotify:track:<id>` URIs) on the clipboard — NOT "Title — Artist" text — so
+/// these have to be resolved to real metadata before matching (see `resolve_id`).
+/// IDs are 22-char base62.
+pub fn extract_track_ids(text: &str) -> Vec<String> {
+    let mut ids = Vec::new();
+    let bytes = text.as_bytes();
+    let mut i = 0;
+    while let Some(p) = text[i..].find("track") {
+        let after = i + p + "track".len();
+        if after < text.len() && (bytes[after] == b'/' || bytes[after] == b':') {
+            let id: String = text[after + 1..].chars().take_while(|c| c.is_ascii_alphanumeric()).collect();
+            if id.len() >= 22 {
+                ids.push(id[..22].to_string());
+            }
+            i = after + 1 + id.len();
+        } else {
+            i = after;
+        }
+    }
+    ids
+}
+
+/// Resolve one Spotify track ID to title/artist/duration via the public embed
+/// page (no auth, no API key). Returns `None` if the page can't be read/parsed.
+pub fn resolve_id(id: &str) -> Option<ParsedTrack> {
+    let url = format!("https://open.spotify.com/embed/track/{id}");
+    let html = ureq::get(&url)
+        .set("User-Agent", "Mozilla/5.0")
+        .call()
+        .ok()?
+        .into_string()
+        .ok()?;
+    let obj = extract_entity(&html)?;
+    let v: serde_json::Value = serde_json::from_str(&obj).ok()?;
+    let title = v.get("name").or_else(|| v.get("title")).and_then(|x| x.as_str())?.to_string();
+    let artist = v
+        .get("artists")
+        .and_then(|a| a.as_array())
+        .map(|a| a.iter().filter_map(|x| x.get("name").and_then(|n| n.as_str())).collect::<Vec<_>>().join(", "))
+        .unwrap_or_default();
+    let dur_ms = v.get("duration").and_then(|d| d.as_u64()).unwrap_or(0);
+    let duration = if dur_ms > 0 { format!("{}:{:02}", dur_ms / 60000, (dur_ms / 1000) % 60) } else { String::new() };
+    Some(ParsedTrack { title, artist, album: String::new(), duration })
+}
+
+/// Extract the balanced `{...}` object that follows `"entity":` in the embed page.
+fn extract_entity(html: &str) -> Option<String> {
+    let key = "\"entity\":";
+    let start = html.find(key)? + key.len();
+    let bytes = html.as_bytes();
+    let mut i = start;
+    while i < html.len() && bytes[i] != b'{' {
+        i += 1;
+    }
+    let begin = i;
+    let (mut depth, mut in_str, mut esc) = (0i32, false, false);
+    while i < html.len() {
+        let c = bytes[i];
+        if in_str {
+            if esc {
+                esc = false;
+            } else if c == b'\\' {
+                esc = true;
+            } else if c == b'"' {
+                in_str = false;
+            }
+        } else {
+            match c {
+                b'"' => in_str = true,
+                b'{' => depth += 1,
+                b'}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(html[begin..=i].to_string());
+                    }
+                }
+                _ => {}
+            }
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Sequential resolve of many IDs (non-native fallback; the default build resolves
+/// these concurrently — see `catalog_native::resolve_spotify`).
+#[cfg_attr(feature = "native-catalog", allow(dead_code))]
+pub fn resolve_ids_seq(ids: &[String], mut on_progress: impl FnMut(usize)) -> Result<Vec<ParsedTrack>> {
+    let mut out = Vec::new();
+    for (i, id) in ids.iter().enumerate() {
+        if let Some(p) = resolve_id(id) {
+            out.push(p);
+        }
+        on_progress(i + 1);
+    }
+    Ok(out)
+}
 
 /// Parse a pasted Spotify selection into tracks. Unparseable / header lines are skipped.
 pub fn parse(text: &str) -> Vec<ParsedTrack> {

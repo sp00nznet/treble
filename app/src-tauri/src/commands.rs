@@ -160,10 +160,29 @@ pub fn import_run(app: AppHandle, lib: State<Arc<Library>>, name: String, text: 
 }
 
 fn do_import(app: AppHandle, lib: Arc<Library>, name: String, text: String) {
-    let parsed = spotify_import::parse(&text);
+    // Spotify's "copy" puts track URLs on the clipboard — resolve those to real
+    // title/artist first; otherwise fall back to parsing "Title — Artist" text.
+    let ids = spotify_import::extract_track_ids(&text);
+    let parsed = if !ids.is_empty() {
+        let n = ids.len();
+        let progress = |done: usize| {
+            let _ = app.emit("import:progress", ImportProgress { done, total: n, matched: done, current: format!("Reading Spotify… {done}/{n}") });
+        };
+        resolve_step(&ids, progress)
+    } else {
+        spotify_import::parse(&text)
+    };
+
+    if IMPORT_CANCEL.load(Ordering::Relaxed) {
+        let _ = app.emit("import:cancelled", ());
+        return;
+    }
+
     let total = parsed.len();
     if total == 0 {
-        let _ = app.emit("import:done", ImportDone { playlist: Playlist::default(), total: 0, matched: 0, skipped: 0 });
+        // Empty input, or Spotify resolution failed for everything.
+        let n = ids.len();
+        let _ = app.emit("import:done", ImportDone { playlist: Playlist::default(), total: n, matched: 0, skipped: n });
         return;
     }
     let review = total <= REVIEW_MAX;
@@ -202,6 +221,17 @@ fn do_import(app: AppHandle, lib: Arc<Library>, name: String, text: String) {
             }
         }
     }
+}
+
+/// Resolve Spotify IDs → metadata, backend-aware: concurrent (default) or sequential.
+#[cfg(feature = "native-catalog")]
+fn resolve_step(ids: &[String], on_progress: impl FnMut(usize)) -> Vec<ParsedTrack> {
+    crate::core::catalog_native::resolve_spotify(ids, 8, &IMPORT_CANCEL, on_progress)
+}
+
+#[cfg(not(feature = "native-catalog"))]
+fn resolve_step(ids: &[String], on_progress: impl FnMut(usize)) -> Vec<ParsedTrack> {
+    spotify_import::resolve_ids_seq(ids, on_progress).unwrap_or_default()
 }
 
 /// Match step, backend-aware: concurrent via rustypipe (default), else sequential.

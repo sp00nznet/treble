@@ -15,7 +15,12 @@ $ndkVer   = '26.1.10909125'
 $clangVer = '21'
 $buildTools = '34.0.0'
 
-$env:JAVA_HOME    = (Get-Command java).Source | Split-Path | Split-Path  # or set explicitly
+# Use a valid JAVA_HOME if already set, else fall back to a common Adoptium path.
+if (-not $env:JAVA_HOME -or -not (Test-Path "$env:JAVA_HOME\bin\javac.exe")) {
+  $jdk = Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Filter 'jdk-21*' -ErrorAction SilentlyContinue |
+         Select-Object -Last 1
+  if ($jdk) { $env:JAVA_HOME = $jdk.FullName }
+}
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:NDK_HOME     = "$env:ANDROID_HOME\ndk\$ndkVer"
 $env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin'
