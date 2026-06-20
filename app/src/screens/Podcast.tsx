@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Play, Loader2 } from "lucide-react";
+import { Play, Loader2, Check, Plus } from "lucide-react";
 import { useStore } from "../store";
-import { podcastEpisodes } from "../lib/api";
+import { podcastEpisodes, subscribePodcast, unsubscribePodcast, listSubscriptions } from "../lib/api";
 import { artBg } from "../lib/art";
 import type { Track } from "../types";
 
@@ -10,14 +10,27 @@ export function Podcast() {
   const { state, dispatch } = useStore();
   const show = state.podcast;
   const [eps, setEps] = useState<Track[] | null>(null);
+  const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
     if (!show) return;
     setEps(null);
     podcastEpisodes(show.feedUrl, show.art).then(setEps).catch(() => setEps([]));
+    listSubscriptions().then((s) => setSubscribed(s.some((p) => p.feed_url === show.feedUrl)));
   }, [show?.feedUrl]);
 
   if (!show) return null;
+
+  const toggleSub = async () => {
+    if (subscribed) {
+      await unsubscribePodcast(show.feedUrl);
+      setSubscribed(false);
+    } else {
+      await subscribePodcast({ id: show.feedUrl, title: show.title, author: show.author, art: show.art, feed_url: show.feedUrl });
+      setSubscribed(true);
+    }
+    dispatch({ type: "refreshLibrary" });
+  };
 
   return (
     <div>
@@ -26,7 +39,10 @@ export function Podcast() {
         <div style={{ paddingBottom: 6 }}>
           <div className="eyebrow" style={{ color: "var(--text-2)" }}>Podcast</div>
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 46, lineHeight: 1.04, letterSpacing: "-.02em", margin: "8px 0 10px" }}>{show.title}</h1>
-          <div style={{ fontSize: 14, color: "var(--text-2)" }}>{show.author}{eps ? ` · ${eps.length} episodes` : ""}</div>
+          <div style={{ fontSize: 14, color: "var(--text-2)", marginBottom: 14 }}>{show.author}{eps ? ` · ${eps.length} episodes` : ""}</div>
+          <button className={`chip press${subscribed ? "" : " active"}`} style={{ display: "inline-flex", alignItems: "center", gap: 7 }} onClick={() => void toggleSub()}>
+            {subscribed ? <><Check size={16} /> Subscribed</> : <><Plus size={16} /> Subscribe</>}
+          </button>
         </div>
       </header>
 

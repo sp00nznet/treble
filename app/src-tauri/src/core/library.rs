@@ -4,6 +4,7 @@
 
 use crate::core::error::Result;
 use crate::core::models::{Playlist, Track};
+use crate::core::podcasts::Podcast;
 use rusqlite::{params, Connection};
 use std::sync::Mutex;
 
@@ -58,6 +59,14 @@ impl Library {
             CREATE TABLE IF NOT EXISTS ratings (
                 track_id TEXT PRIMARY KEY,
                 rating   INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id       TEXT PRIMARY KEY,
+                title    TEXT NOT NULL,
+                author   TEXT NOT NULL DEFAULT '',
+                art      TEXT NOT NULL DEFAULT '',
+                feed_url TEXT NOT NULL,
+                added    INTEGER NOT NULL DEFAULT 0
             );
             "#,
         )?;
@@ -202,6 +211,59 @@ impl Library {
                 downloaded: true,
                 rating: 0,
             })
+        })?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    /// All distinct tracks in the library (the "Songs" tab), with ratings.
+    pub fn list_all_tracks(&self) -> Result<Vec<Track>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT t.id, t.title, t.artist, t.album, t.duration_secs, t.art, t.downloaded,
+                    COALESCE(rt.rating, 0)
+             FROM tracks t LEFT JOIN ratings rt ON rt.track_id = t.id
+             ORDER BY t.title COLLATE NOCASE",
+        )?;
+        let rows = stmt.query_map([], |r| {
+            let secs: u32 = r.get(4)?;
+            Ok(Track {
+                id: r.get(0)?,
+                title: r.get(1)?,
+                artist: r.get(2)?,
+                album: r.get(3)?,
+                duration: Track::fmt_duration(secs),
+                duration_secs: secs,
+                art: r.get(5)?,
+                downloaded: r.get::<_, i64>(6)? != 0,
+                rating: r.get::<_, i64>(7)? as u8,
+            })
+        })?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    // ---- podcast subscriptions ----
+
+    pub fn subscribe(&self, p: &Podcast) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT OR REPLACE INTO subscriptions (id, title, author, art, feed_url, added)
+             VALUES (?1, ?2, ?3, ?4, ?5, strftime('%s','now'))",
+            params![p.id, p.title, p.author, p.art, p.feed_url],
+        )?;
+        Ok(())
+    }
+
+    pub fn unsubscribe(&self, id: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM subscriptions WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
+    pub fn list_subscriptions(&self) -> Result<Vec<Podcast>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT id, title, author, art, feed_url FROM subscriptions ORDER BY added DESC")?;
+        let rows = stmt.query_map([], |r| {
+            Ok(Podcast { id: r.get(0)?, title: r.get(1)?, author: r.get(2)?, art: r.get(3)?, feed_url: r.get(4)? })
         })?;
         Ok(rows.filter_map(|r| r.ok()).collect())
     }

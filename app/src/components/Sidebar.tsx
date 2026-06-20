@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Home, Search, Compass, Library, Download, Settings, Plus, Pencil, Trash2 } from "lucide-react";
 import { useStore } from "../store";
 import { usePlaylists } from "../lib/usePlaylists";
-import { deletePlaylist, renamePlaylist } from "../lib/api";
+import { deletePlaylist, renamePlaylist, newPlaylist } from "../lib/api";
 import { artBg } from "../lib/art";
 import type { Screen } from "../types";
 
@@ -28,6 +28,11 @@ export function Sidebar() {
     await deletePlaylist(id);
     dispatch({ type: "refreshLibrary" });
     if (state.detailId === id) dispatch({ type: "go", screen: "library" });
+  };
+  const addPlaylist = async () => {
+    const pl = await newPlaylist("New Playlist");
+    dispatch({ type: "refreshLibrary" });
+    setRenaming({ id: pl.id, value: pl.title }); // let the user name it right away
   };
   const doRename = async () => {
     if (!renaming) return;
@@ -59,7 +64,7 @@ export function Sidebar() {
       <div style={{ height: 1, background: "var(--border)", margin: "14px 8px 12px" }} />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 11px 10px" }}>
         <span className="eyebrow">Playlists</span>
-        <Plus size={16} style={{ color: "var(--text-3)", cursor: "pointer" }} />
+        <span className="press" style={{ display: "flex", color: "var(--text-3)", cursor: "pointer" }} onClick={() => void addPlaylist()} title="New playlist"><Plus size={16} /></span>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", margin: "0 -4px", padding: "0 4px" }}>

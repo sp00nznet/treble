@@ -105,6 +105,36 @@ pub fn list_downloads(lib: State<Arc<Library>>) -> CmdResult<Vec<Track>> {
     lib.list_downloaded()
 }
 
+/// All tracks in the library (the "Songs" tab).
+#[tauri::command]
+pub fn list_all_tracks(lib: State<Arc<Library>>) -> CmdResult<Vec<Track>> {
+    lib.list_all_tracks()
+}
+
+/// Create a new, empty playlist; returns it.
+#[tauri::command]
+pub fn new_playlist(lib: State<Arc<Library>>, name: String) -> CmdResult<Playlist> {
+    let id = lib.create_playlist(&name, &[])?;
+    lib.get_playlist(&id).map(|o| o.unwrap_or(Playlist { id, title: name, ..Default::default() }))
+}
+
+// ---- podcast subscriptions ----
+
+#[tauri::command]
+pub fn subscribe_podcast(lib: State<Arc<Library>>, show: Podcast) -> CmdResult<()> {
+    lib.subscribe(&show)
+}
+
+#[tauri::command]
+pub fn unsubscribe_podcast(lib: State<Arc<Library>>, id: String) -> CmdResult<()> {
+    lib.unsubscribe(&id)
+}
+
+#[tauri::command]
+pub fn list_subscriptions(lib: State<Arc<Library>>) -> CmdResult<Vec<Podcast>> {
+    lib.list_subscriptions()
+}
+
 /// Path to the on-disk log file (for the Settings "view log" affordance).
 #[tauri::command]
 pub fn get_log_path() -> Option<String> {

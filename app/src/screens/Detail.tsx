@@ -6,6 +6,7 @@ import { getPlaylist, deletePlaylist, renamePlaylist, downloadTrack, setRating, 
 import type { Track } from "../types";
 import { isTauri } from "../lib/windows";
 import { artBg } from "../lib/art";
+import { VirtualList } from "../components/VirtualList";
 
 type ColKey = "artist" | "album" | "rating";
 type SortKey = "index" | "title" | "artist" | "album" | "rating" | "duration";
@@ -122,9 +123,37 @@ export function Detail() {
     </span>
   );
 
+  const rowRender = (t: Track, i: number) => (
+    <div
+      className="trk"
+      style={{ gridTemplateColumns: grid, height: "100%", margin: "0 34px" }}
+      onClick={() => dispatch({ type: "play", track: t })}
+      onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}
+    >
+      <span className="idx">{i + 1}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        <span className="trk-art" style={{ background: artBg(t.art) }} />
+        <span style={{ minWidth: 0 }}>
+          <span className="ellipsis" style={{ display: "block", fontSize: 14, fontWeight: 600 }}>{t.title}</span>
+          <span className="ellipsis" style={{ display: "block", fontSize: 12, color: "var(--text-2)" }}>{t.artist}</span>
+        </span>
+      </span>
+      {visible.includes("artist") && <span className="ellipsis" style={{ fontSize: 13, color: "var(--text-2)" }}>{t.artist}</span>}
+      {visible.includes("album") && <span className="ellipsis" style={{ fontSize: 13, color: "var(--text-2)" }}>{t.album}</span>}
+      {visible.includes("rating") && (
+        <span style={{ display: "flex", alignItems: "center", gap: 2 }} onClick={(e) => e.stopPropagation()}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Star key={n} size={14} className="press" onClick={() => void rate(t, n)} style={{ cursor: "pointer", color: (t.rating ?? 0) >= n ? "var(--accent)" : "var(--text-3)" }} fill={(t.rating ?? 0) >= n ? "currentColor" : "none"} />
+          ))}
+        </span>
+      )}
+      <span style={{ fontSize: 13, color: "var(--text-3)", textAlign: "right" }}>{t.duration}</span>
+    </div>
+  );
+
   return (
-    <div>
-      <header style={{ padding: "40px 34px 24px", display: "flex", gap: 26, alignItems: "flex-end", background: "linear-gradient(180deg,var(--accent-soft),transparent)" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <header style={{ flexShrink: 0, padding: "40px 34px 24px", display: "flex", gap: 26, alignItems: "flex-end", background: "linear-gradient(180deg,var(--accent-soft),transparent)" }}>
         <div
           onContextMenu={(e) => { if (isReal) { e.preventDefault(); void replaceCover(); } }}
           title={isReal ? "Right-click to replace cover" : undefined}
@@ -153,7 +182,7 @@ export function Detail() {
         </div>
       </header>
 
-      <div style={{ padding: "18px 34px 8px", display: "flex", alignItems: "center", gap: 18 }}>
+      <div style={{ flexShrink: 0, padding: "18px 34px 8px", display: "flex", alignItems: "center", gap: 18 }}>
         <button className="fab press" style={{ width: 56, height: 56, boxShadow: "0 10px 24px rgba(255,107,92,.4)" }} onClick={playAll}><Play size={24} fill="#fff" /></button>
         <Heart size={26} className="press" style={{ color: "var(--accent)", cursor: "pointer" }} fill="currentColor" />
         <Download size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={downloadAll} />
@@ -178,49 +207,25 @@ export function Detail() {
         </div>
       </div>
 
-      <div style={{ padding: "8px 34px 40px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: grid, gap: 16, padding: "0 12px 8px", borderBottom: "1px solid var(--border)", marginBottom: 6 }} className="eyebrow">
-          <SortHead k="index" label="#" />
-          <SortHead k="title" label="Title" />
-          {visible.includes("artist") && <SortHead k="artist" label="Artist" />}
-          {visible.includes("album") && <SortHead k="album" label="Album" />}
-          {visible.includes("rating") && <SortHead k="rating" label="Rating" />}
-          <SortHead k="duration" label={<Clock size={15} />} align="right" />
-        </div>
-
-        {tracks.length === 0 ? (
-          <div style={{ padding: "20px 12px", color: "var(--text-2)", fontSize: 14 }}>This playlist is empty.</div>
-        ) : (
-          tracks.map((t, i) => (
-            <div
-              key={t.id || i}
-              className="trk"
-              style={{ gridTemplateColumns: grid }}
-              onClick={() => dispatch({ type: "play", track: t })}
-              onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}
-            >
-              <span className="idx">{i + 1}</span>
-              <span style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                <span className="trk-art" style={{ background: artBg(t.art) }} />
-                <span style={{ minWidth: 0 }}>
-                  <span className="ellipsis" style={{ display: "block", fontSize: 14, fontWeight: 600 }}>{t.title}</span>
-                  <span className="ellipsis" style={{ display: "block", fontSize: 12, color: "var(--text-2)" }}>{t.artist}</span>
-                </span>
-              </span>
-              {visible.includes("artist") && <span className="ellipsis" style={{ fontSize: 13, color: "var(--text-2)", alignSelf: "center" }}>{t.artist}</span>}
-              {visible.includes("album") && <span className="ellipsis" style={{ fontSize: 13, color: "var(--text-2)", alignSelf: "center" }}>{t.album}</span>}
-              {visible.includes("rating") && (
-                <span style={{ display: "flex", alignItems: "center", gap: 2 }} onClick={(e) => e.stopPropagation()}>
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <Star key={n} size={14} className="press" onClick={() => void rate(t, n)} style={{ cursor: "pointer", color: (t.rating ?? 0) >= n ? "var(--accent)" : "var(--text-3)" }} fill={(t.rating ?? 0) >= n ? "currentColor" : "none"} />
-                  ))}
-                </span>
-              )}
-              <span style={{ fontSize: 13, color: "var(--text-3)", textAlign: "right", alignSelf: "center" }}>{t.duration}</span>
+      {tracks.length === 0 ? (
+        <div style={{ padding: "20px 46px", color: "var(--text-2)", fontSize: 14 }}>This playlist is empty.</div>
+      ) : (
+        <VirtualList
+          items={tracks}
+          rowHeight={56}
+          renderRow={rowRender}
+          header={
+            <div style={{ display: "grid", gridTemplateColumns: grid, gap: 16, padding: "0 46px 8px", borderBottom: "1px solid var(--border)", marginBottom: 6 }} className="eyebrow">
+              <SortHead k="index" label="#" />
+              <SortHead k="title" label="Title" />
+              {visible.includes("artist") && <SortHead k="artist" label="Artist" />}
+              {visible.includes("album") && <SortHead k="album" label="Album" />}
+              {visible.includes("rating") && <SortHead k="rating" label="Rating" />}
+              <SortHead k="duration" label={<Clock size={15} />} align="right" />
             </div>
-          ))
-        )}
-      </div>
+          }
+        />
+      )}
 
       {colMenu && (
         <>

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "../store";
 import { ACCENTS } from "../theme";
+import { getLogPath } from "../lib/api";
 import type { AccentName, ThemePref } from "../types";
 
 const THEME_OPTS: ThemePref[] = ["light", "dark", "auto"];
@@ -12,6 +13,9 @@ const THEME_OPTS: ThemePref[] = ["light", "dark", "auto"];
  */
 export function Settings() {
   const { state, dispatch } = useStore();
+  const [logPath, setLogPath] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => { getLogPath().then(setLogPath).catch(() => {}); }, []);
 
   return (
     <div className="screen" style={{ maxWidth: 780 }}>
@@ -45,6 +49,19 @@ export function Settings() {
         </Row>
       </div>
 
+      <div className="eyebrow" style={{ margin: "8px 0 12px" }}>Library &amp; downloads</div>
+      <div style={card}>
+        <Row label="Auto-download" sub="Cache tracks for offline as you play them">
+          <Switch on={state.autoDownload} onChange={(v) => dispatch({ type: "setAutoDownload", on: v })} />
+        </Row>
+        <Row label="Default volume" sub="Applied to playback" last>
+          <div onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); dispatch({ type: "setVolume", volume: (e.clientX - r.left) / r.width }); }}
+            style={{ width: 140, height: 5, borderRadius: 3, background: "var(--surface-2)", position: "relative", cursor: "pointer" }}>
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${state.volume * 100}%`, background: "var(--accent)", borderRadius: 3 }} />
+          </div>
+        </Row>
+      </div>
+
       <div className="eyebrow" style={{ margin: "8px 0 12px" }}>Player &amp; audio</div>
       <div style={card}>
         <Toggle label="Skip silence" sub="Trim silent intros & outros" defaultOn={false} />
@@ -52,7 +69,28 @@ export function Settings() {
         <Toggle label="Crossfade" sub="Blend song transitions" defaultOn />
         <Toggle label="Gapless playback" sub="No silence between tracks" defaultOn last />
       </div>
+      <div style={{ fontSize: 12, color: "var(--text-3)", margin: "-20px 4px 24px" }}>These four are placeholders — the toggles save but the DSP isn't wired yet.</div>
+
+      <div className="eyebrow" style={{ margin: "8px 0 12px" }}>Diagnostics &amp; about</div>
+      <div style={card}>
+        <Row label="Log file" sub={logPath ?? "—"}>
+          <button className="chip press" disabled={!logPath} onClick={() => { if (logPath) { void navigator.clipboard.writeText(logPath); setCopied(true); setTimeout(() => setCopied(false), 1200); } }}>
+            {copied ? "Copied" : "Copy path"}
+          </button>
+        </Row>
+        <Row label="Treble" sub="Version 1.0.0 · github.com/sp00nznet/treble" last>
+          <span style={{ fontSize: 13, color: "var(--text-3)" }}>Powered by yt-dlp · rustypipe · LRCLIB</span>
+        </Row>
+      </div>
     </div>
+  );
+}
+
+function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button className="press" onClick={() => onChange(!on)} style={{ width: 42, height: 24, borderRadius: 13, background: on ? "var(--accent)" : "var(--surface-2)", position: "relative", border: "none", cursor: "pointer" }}>
+      <span style={{ position: "absolute", top: 2, [on ? "right" : "left"]: 2, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.3)" }} />
+    </button>
   );
 }
 

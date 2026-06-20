@@ -5,10 +5,10 @@
 
 use crate::core::error::{CoreError, Result};
 use crate::core::models::Track;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Podcast {
     pub id: String,
     pub title: String,

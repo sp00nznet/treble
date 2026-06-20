@@ -136,6 +136,30 @@ export async function podcastEpisodes(feedUrl: string, art: string): Promise<Tra
   return invoke<Track[]>("podcast_episodes", { feedUrl, art });
 }
 
+export async function subscribePodcast(show: Podcast): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("subscribe_podcast", { show });
+}
+
+export async function unsubscribePodcast(id: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("unsubscribe_podcast", { id });
+}
+
+export async function listSubscriptions(): Promise<Podcast[]> {
+  if (!isTauri()) return [];
+  return invoke<Podcast[]>("list_subscriptions");
+}
+
+export async function listAllTracks(): Promise<Track[]> {
+  if (!isTauri()) return [];
+  return invoke<Track[]>("list_all_tracks");
+}
+
+export async function newPlaylist(name: string): Promise<CorePlaylist> {
+  return invoke<CorePlaylist>("new_playlist", { name });
+}
+
 // ---- local file library ----
 
 export async function pickFolder(): Promise<string | null> {

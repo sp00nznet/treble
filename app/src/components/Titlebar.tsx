@@ -1,4 +1,4 @@
-import { Search, ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
 import { useStore } from "../store";
 import { resolveTheme } from "../theme";
 import { Devices } from "./Devices";
@@ -20,13 +20,10 @@ export function Titlebar() {
         <button {...noDrag} className="press" style={{ ...iconBtn, opacity: state.forward.length ? 1 : 0.4 }} disabled={!state.forward.length} onClick={() => dispatch({ type: "navForward" })}><ChevronRight size={18} /></button>
       </div>
 
-      <div style={{ flex: 1, display: "flex", justifyContent: "center" }} data-tauri-drag-region>
-        <button {...noDrag} className="searchpill press" onClick={() => dispatch({ type: "go", screen: "search" })}>
-          <Search size={16} />
-          <span>Search songs, artists, albums…</span>
-          <span style={kbd}>Ctrl K</span>
-        </button>
-      </div>
+      {/* draggable spacer (search lives in the sidebar now) */}
+      <div style={{ flex: 1 }} data-tauri-drag-region />
+      <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--text-3)", marginRight: 8 }} data-tauri-drag-region>Treble</span>
+      <div style={{ flex: 1 }} data-tauri-drag-region />
 
       <button
         {...noDrag}
@@ -46,7 +43,4 @@ export function Titlebar() {
 const iconBtn: React.CSSProperties = {
   width: 28, height: 28, borderRadius: 7, display: "flex", alignItems: "center",
   justifyContent: "center", border: "none", background: "transparent", color: "inherit", cursor: "pointer",
-};
-const kbd: React.CSSProperties = {
-  marginLeft: "auto", fontSize: 11, border: "1px solid var(--border)", borderRadius: 5, padding: "1px 6px",
 };
