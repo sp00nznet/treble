@@ -33,6 +33,9 @@ native-catalog = ["dep:rustypipe", "dep:tokio"]
 [dependencies.rustypipe]
 version = "0.11"
 optional = true
+# rustls (pure Rust) instead of native-tls/OpenSSL so it cross-compiles to Android.
+default-features = false
+features = ["rustls-tls-webpki-roots"]
 
 [dependencies.tokio]
 version = "1"
