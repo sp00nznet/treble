@@ -13,6 +13,7 @@ pub mod local;
 pub mod log;
 pub mod lyrics;
 pub mod models;
+pub mod podcasts;
 pub mod spotify_import;
 pub mod sync;
 pub mod tools;

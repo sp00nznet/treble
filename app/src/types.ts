@@ -8,7 +8,8 @@ export type Screen =
   | "detail"
   | "downloads"
   | "settings"
-  | "queue";
+  | "queue"
+  | "podcast";
 
 export type ThemeName = "light" | "dark";
 export type ThemePref = "light" | "dark" | "auto";

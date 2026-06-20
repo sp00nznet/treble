@@ -15,6 +15,7 @@ import { Library } from "./screens/Library";
 import { Detail } from "./screens/Detail";
 import { Downloads } from "./screens/Downloads";
 import { Queue } from "./screens/Queue";
+import { Podcast } from "./screens/Podcast";
 import { Settings } from "./screens/Settings";
 import { Placeholder } from "./screens/Placeholder";
 
@@ -90,6 +91,8 @@ function renderScreen(screen: string) {
       return <Downloads />;
     case "queue":
       return <Queue />;
+    case "podcast":
+      return <Podcast />;
     case "settings":
       return <Settings />;
     default:

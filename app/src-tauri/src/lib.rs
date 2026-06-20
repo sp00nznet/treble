@@ -41,6 +41,8 @@ pub fn run() {
             commands::search,
             commands::resolve_stream,
             commands::get_lyrics,
+            commands::search_podcasts,
+            commands::podcast_episodes,
             commands::parse_spotify,
             commands::import_spotify,
             commands::import_run,

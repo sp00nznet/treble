@@ -5,6 +5,7 @@
 use crate::core::library::Library;
 use crate::core::models::{BulkRow, Lyrics, ParsedTrack, Playlist, Track};
 use crate::core::sync::{Peer, SendMessage, Snapshot, SyncService};
+use crate::core::podcasts::{self, Podcast};
 use crate::core::{catalog, downloads, local, lyrics, spotify_import, sync, tools};
 use serde::Serialize;
 use std::path::PathBuf;
@@ -66,6 +67,20 @@ pub async fn resolve_stream(id: String) -> CmdResult<String> {
 #[tauri::command]
 pub async fn get_lyrics(title: String, artist: String, album: String, duration_secs: u32) -> CmdResult<Lyrics> {
     tauri::async_runtime::spawn_blocking(move || lyrics::fetch(&title, &artist, &album, duration_secs))
+        .await
+        .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
+}
+
+#[tauri::command]
+pub async fn search_podcasts(query: String) -> CmdResult<Vec<Podcast>> {
+    tauri::async_runtime::spawn_blocking(move || podcasts::search(&query))
+        .await
+        .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
+}
+
+#[tauri::command]
+pub async fn podcast_episodes(feed_url: String, art: String) -> CmdResult<Vec<Track>> {
+    tauri::async_runtime::spawn_blocking(move || podcasts::episodes(&feed_url, &art))
         .await
         .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
 }

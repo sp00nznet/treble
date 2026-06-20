@@ -32,6 +32,7 @@ interface State {
   autoDownload: boolean; // cache tracks for offline as they're played
   back: NavEntry[]; // navigation history (back stack)
   forward: NavEntry[]; // navigation history (forward stack)
+  podcast: { feedUrl: string; title: string; author: string; art: string } | null; // open show
 }
 
 interface NavEntry {
@@ -60,6 +61,7 @@ type Action =
   | { type: "refreshLibrary" }
   | { type: "navBack" }
   | { type: "navForward" }
+  | { type: "openPodcast"; show: { feedUrl: string; title: string; author: string; art: string } }
   | { type: "setVolume"; volume: number }
   | { type: "setLoading"; loading: boolean }
   | { type: "setAutoDownload"; on: boolean };
@@ -87,6 +89,7 @@ const initial: State = {
   autoDownload: (() => { try { return localStorage.getItem("treble.autoDownload") === "1"; } catch { return false; } })(),
   back: [],
   forward: [],
+  podcast: null,
 };
 
 function reducer(s: State, a: Action): State {
@@ -96,6 +99,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, screen: a.screen, back: [...s.back, { screen: s.screen, detailId: s.detailId }], forward: [] };
     case "openDetail":
       return { ...s, screen: "detail", detailId: a.id, back: [...s.back, { screen: s.screen, detailId: s.detailId }], forward: [] };
+    case "openPodcast":
+      return { ...s, screen: "podcast", podcast: a.show, back: [...s.back, { screen: s.screen, detailId: s.detailId }], forward: [] };
     case "navBack": {
       if (s.back.length === 0) return s;
       const prev = s.back[s.back.length - 1];

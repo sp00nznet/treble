@@ -26,6 +26,8 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 # Local-file library: tag reading + recursive scan.
 lofty = "0.24"
 walkdir = "2"
+# Podcasts: parse RSS feeds (episodes) found via the iTunes Search API.
+rss = "2"
 # LAN sync + "send to device": zero-config mDNS discovery + the local IP for it.
 mdns-sd = "0.20"
 local-ip-address = "0.6"

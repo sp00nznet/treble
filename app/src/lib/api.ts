@@ -113,7 +113,27 @@ export async function resolveStream(id: string): Promise<string> {
     const { convertFileSrc } = await import("@tauri-apps/api/core");
     return convertFileSrc(id.slice("local:".length));
   }
+  // Podcast episodes (and any direct-URL track) are already playable URLs.
+  if (/^https?:\/\//.test(id)) return id;
   return invoke<string>("resolve_stream", { id });
+}
+
+export interface Podcast {
+  id: string;
+  title: string;
+  author: string;
+  art: string;
+  feed_url: string;
+}
+
+export async function searchPodcasts(query: string): Promise<Podcast[]> {
+  if (!isTauri()) return [];
+  return invoke<Podcast[]>("search_podcasts", { query });
+}
+
+export async function podcastEpisodes(feedUrl: string, art: string): Promise<Track[]> {
+  if (!isTauri()) return [];
+  return invoke<Track[]>("podcast_episodes", { feedUrl, art });
 }
 
 // ---- local file library ----
