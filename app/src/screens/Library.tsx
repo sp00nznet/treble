@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, Import, FolderPlus, Loader2, Search as SearchIcon, Mic } from "lucide-react";
 import { useStore } from "../store";
 import { LIBRARY } from "../data/mock";
-import { listPlaylists, pickFolder, scanLocalFolder, searchPodcasts, listSubscriptions, unsubscribePodcast, listAllTracks, type Podcast } from "../lib/api";
+import { listPlaylists, pickFolder, scanLocalFolder, searchPodcasts, listSubscriptions, unsubscribePodcast, listAllTracks, newPlaylist, type Podcast } from "../lib/api";
 import { artBg } from "../lib/art";
 import type { LibraryItem, Track } from "../types";
 import { isTauri } from "../lib/windows";
@@ -71,7 +71,15 @@ export function Library() {
           >
             <Import size={16} /> Import from Spotify
           </button>
-          <button className="chip active press" style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <button
+            className="chip active press"
+            style={{ display: "flex", alignItems: "center", gap: 7 }}
+            onClick={async () => {
+              const pl = await newPlaylist("New Playlist");
+              dispatch({ type: "refreshLibrary" });
+              dispatch({ type: "openDetail", id: pl.id });
+            }}
+          >
             <Plus size={16} /> New
           </button>
         </div>
