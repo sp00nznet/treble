@@ -70,7 +70,7 @@ export function App() {
       <div className="body">
         <Sidebar />
         <main className="center">{renderScreen(state.screen)}</main>
-        <NowPlayingPanel />
+        {state.playerOpen && <NowPlayingPanel />}
       </div>
 
       {/* the actual sound — headless, syncs <audio> to the store */}

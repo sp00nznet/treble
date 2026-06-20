@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sun, Moon, PanelRight } from "lucide-react";
 import { useStore } from "../store";
 import { resolveTheme } from "../theme";
 import { Devices } from "./Devices";
@@ -34,6 +34,17 @@ export function Titlebar() {
       >
         {isDark ? <Sun size={17} /> : <Moon size={17} />}
       </button>
+      {!state.playerOpen && (
+        <button
+          {...noDrag}
+          className="press"
+          onClick={() => dispatch({ type: "setPlayerOpen", open: true })}
+          style={{ ...iconBtn, width: 32, height: 32, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-2)" }}
+          title="Show now-playing panel"
+        >
+          <PanelRight size={17} />
+        </button>
+      )}
       <span {...noDrag}><Devices /></span>
       <span {...noDrag}><WindowControls /></span>
     </div>

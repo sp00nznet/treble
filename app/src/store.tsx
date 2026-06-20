@@ -45,6 +45,9 @@ interface State {
   likedIds: string[]; // ids of liked tracks (mirrors the DB for quick lookup)
   // --- search seeding (Go to artist / album) ---
   pendingSearch: string | null;
+  // --- UI ---
+  playerOpen: boolean; // the docked now-playing panel is shown
+  recent: Track[]; // recently played tracks (most-recent first), persisted
 }
 
 interface NavEntry {
@@ -71,6 +74,7 @@ type Action =
   | { type: "toggleLikedLocal"; id: string; liked: boolean }
   | { type: "seedSearch"; query: string }
   | { type: "clearSearchSeed" }
+  | { type: "setPlayerOpen"; open: boolean }
   | { type: "setNp"; open: boolean }
   | { type: "setMini"; open: boolean }
   | { type: "setLyrics"; open: boolean }
@@ -121,7 +125,16 @@ const initial: State = {
   playToken: 0,
   likedIds: [],
   pendingSearch: null,
+  playerOpen: (() => { try { return localStorage.getItem("treble.playerOpen") !== "0"; } catch { return true; } })(),
+  recent: (() => { try { return JSON.parse(localStorage.getItem("treble.recent") || "[]"); } catch { return []; } })(),
 };
+
+/** Prepend a track to the recently-played list (dedupe by id, cap 30), persisted. */
+function pushRecent(recent: Track[], t: Track): Track[] {
+  const next = [t, ...recent.filter((x) => x.id !== t.id)].slice(0, 30);
+  try { localStorage.setItem("treble.recent", JSON.stringify(next)); } catch { /* ignore */ }
+  return next;
+}
 
 /** Fisher–Yates shuffle of a copy (browser Math.random is fine here). */
 function shuffled<T>(arr: T[]): T[] {
@@ -185,6 +198,7 @@ function reducer(s: State, a: Action): State {
         durationSecs: trackDuration(a.track),
         pendingSeek: null,
         playToken: s.playToken + 1,
+        recent: pushRecent(s.recent, a.track),
       };
     }
     case "next": {
@@ -199,13 +213,13 @@ function reducer(s: State, a: Action): State {
         else return { ...s, playing: false }; // end of queue
       }
       const track = s.queue[i];
-      return { ...s, nowPlaying: track, queueIndex: i, playing: true, loading: true, positionSecs: 0, durationSecs: trackDuration(track), pendingSeek: null, playToken: s.playToken + 1 };
+      return { ...s, nowPlaying: track, queueIndex: i, playing: true, loading: true, positionSecs: 0, durationSecs: trackDuration(track), pendingSeek: null, playToken: s.playToken + 1, recent: pushRecent(s.recent, track) };
     }
     case "prev": {
       if (s.queue.length === 0) return s;
       const i = Math.max(0, s.queueIndex - 1);
       const track = s.queue[i];
-      return { ...s, nowPlaying: track, queueIndex: i, playing: true, loading: true, positionSecs: 0, durationSecs: trackDuration(track), pendingSeek: null, playToken: s.playToken + 1 };
+      return { ...s, nowPlaying: track, queueIndex: i, playing: true, loading: true, positionSecs: 0, durationSecs: trackDuration(track), pendingSeek: null, playToken: s.playToken + 1, recent: pushRecent(s.recent, track) };
     }
     case "enqueue":
       if (!s.nowPlaying) return reducer(s, { type: "play", track: a.track });
@@ -241,6 +255,9 @@ function reducer(s: State, a: Action): State {
       return { ...s, screen: "search", pendingSearch: a.query, back: [...s.back, { screen: s.screen, detailId: s.detailId }], forward: [] };
     case "clearSearchSeed":
       return { ...s, pendingSearch: null };
+    case "setPlayerOpen":
+      try { localStorage.setItem("treble.playerOpen", a.open ? "1" : "0"); } catch { /* ignore */ }
+      return { ...s, playerOpen: a.open };
     case "setLoading":
       return { ...s, loading: a.loading };
     case "setAutoDownload":

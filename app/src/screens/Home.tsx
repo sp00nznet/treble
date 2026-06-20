@@ -1,11 +1,12 @@
 import { Play, Search, Import } from "lucide-react";
 import { useStore } from "../store";
 import { usePlaylists } from "../lib/usePlaylists";
-import { artBg } from "../lib/art";
+import { coverBg } from "../lib/art";
 
 export function Home() {
-  const { dispatch } = useStore();
+  const { state, dispatch } = useStore();
   const playlists = usePlaylists();
+  const recent = state.recent;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
@@ -16,12 +17,32 @@ export function Home() {
         <h1 className="h1" style={{ marginTop: 3 }}>Welcome back</h1>
       </header>
 
-      {playlists.length === 0 ? (
+      {recent.length > 0 && (
+        <>
+          <h2 className="h2" style={{ marginBottom: 16 }}>Recently played</h2>
+          <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 10, marginBottom: 34 }}>
+            {recent.slice(0, 14).map((t) => (
+              <div
+                key={t.id}
+                style={{ width: 150, flex: "none", cursor: "pointer" }}
+                onClick={() => dispatch({ type: "play", track: t, queue: recent })}
+                onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}
+              >
+                <div className="art" style={{ background: coverBg(t.art, t.title), marginBottom: 10 }} />
+                <div className="ellipsis" style={{ fontSize: 14, fontWeight: 700 }}>{t.title}</div>
+                <div className="ellipsis" style={{ fontSize: 13, color: "var(--text-2)", marginTop: 2 }}>{t.artist}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {playlists.length === 0 && recent.length === 0 ? (
         <EmptyHome
           onSearch={() => dispatch({ type: "go", screen: "search" })}
           onImport={() => dispatch({ type: "setImport", open: true })}
         />
-      ) : (
+      ) : playlists.length > 0 ? (
         <>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
             <h2 className="h2">Your playlists</h2>
@@ -30,7 +51,7 @@ export function Home() {
           <div className="grid-5">
             {playlists.map((p) => (
               <div key={p.id} className="card" onClick={() => dispatch({ type: "openDetail", id: p.id })}>
-                <div className="art" style={{ background: artBg(p.art), marginBottom: 12, position: "relative" }}>
+                <div className="art" style={{ background: coverBg(p.art, p.title), marginBottom: 12, position: "relative" }}>
                   <span className="fab" style={{ position: "absolute", right: 9, bottom: 9, width: 44, height: 44, boxShadow: "0 8px 18px rgba(255,107,92,.45)" }}>
                     <Play size={18} fill="#fff" />
                   </span>
@@ -41,7 +62,7 @@ export function Home() {
             ))}
           </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

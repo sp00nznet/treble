@@ -3,7 +3,7 @@ import { Plus, Import, FolderPlus, Loader2, Mic, Heart } from "lucide-react";
 import { useStore } from "../store";
 import { LIBRARY } from "../data/mock";
 import { listPlaylists, pickFolder, scanLocalFolder, listSubscriptions, unsubscribePodcast, listAllTracks, newPlaylist, type Podcast } from "../lib/api";
-import { artBg } from "../lib/art";
+import { artBg, coverBg } from "../lib/art";
 import type { LibraryItem, Track } from "../types";
 import { isTauri } from "../lib/windows";
 import { VirtualList } from "../components/VirtualList";
@@ -114,7 +114,7 @@ export function Library() {
           )}
           {items.map((m) => (
             <div key={m.id} className="card" style={{ border: "none", background: "transparent", padding: 0 }} onClick={() => dispatch({ type: "openDetail", id: m.id })}>
-              <div className="art" style={{ background: artBg(m.art), borderRadius: m.shape === "circle" ? "50%" : "var(--r-art)", marginBottom: 11 }} />
+              <div className="art" style={{ background: coverBg(m.art, m.title), borderRadius: m.shape === "circle" ? "50%" : "var(--r-art)", marginBottom: 11 }} />
               <div className="ellipsis" style={{ fontSize: 14, fontWeight: 700, textAlign: m.shape === "circle" ? "center" : "left" }}>{m.title}</div>
               <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 2, textAlign: m.shape === "circle" ? "center" : "left" }}>{m.subtitle}</div>
             </div>

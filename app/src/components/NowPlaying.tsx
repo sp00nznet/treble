@@ -3,6 +3,7 @@ import { useStore } from "../store";
 import { Scrubber } from "./Scrubber";
 import { fmtTime } from "../lib/format";
 import { useSyncedLyrics } from "../lib/useSyncedLyrics";
+import { useLike } from "../lib/useLike";
 import { isArtUrl } from "../types";
 
 /**
@@ -15,6 +16,8 @@ export function NowPlaying() {
   const title = np?.title ?? "Nothing playing";
   const sub = np ? [np.artist, np.album].filter(Boolean).join(" · ") : "";
   const { lines, activeIndex, seekToLine } = useSyncedLyrics();
+  const { isLiked, toggle } = useLike();
+  const liked = np ? isLiked(np.id) : false;
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", background: "#140f0d" }}>
@@ -42,7 +45,7 @@ export function NowPlaying() {
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 34, color: "#fff", letterSpacing: "-.01em" }}>{title}</div>
             <div style={{ fontSize: 17, color: "rgba(255,255,255,.66)", marginTop: 5 }}>{sub}</div>
           </div>
-          <Heart size={26} className="press" style={{ color: "#FF9A5C", marginTop: 8 }} fill="currentColor" />
+          <Heart size={26} className="press" style={{ color: liked ? "#FF9A5C" : "rgba(255,255,255,.5)", marginTop: 8, cursor: np ? "pointer" : "default" }} fill={liked ? "currentColor" : "none"} onClick={() => np && toggle(np)} />
         </div>
         <div style={{ margin: "30px 0 7px" }}>
           <Scrubber theme="dark" />

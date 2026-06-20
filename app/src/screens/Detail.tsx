@@ -5,7 +5,7 @@ import { PLAYLISTS, TRACKS, ART } from "../data/mock";
 import { getPlaylist, deletePlaylist, renamePlaylist, downloadMany, setRating, pickImage, setPlaylistCover, listLiked, type CorePlaylist } from "../lib/api";
 import type { Track } from "../types";
 import { isTauri } from "../lib/windows";
-import { artBg } from "../lib/art";
+import { artBg, coverBg } from "../lib/art";
 import { VirtualList } from "../components/VirtualList";
 
 /** Sentinel detailId for the auto-managed Liked Songs view. */
@@ -182,7 +182,7 @@ export function Detail() {
         <div
           onContextMenu={(e) => { if (isReal) { e.preventDefault(); void replaceCover(); } }}
           title={isReal ? "Right-click to replace cover" : undefined}
-          style={{ position: "relative", width: 212, height: 212, borderRadius: 14, flex: "none", background: artBg(art), boxShadow: "0 20px 44px var(--shadow)", cursor: isReal ? "pointer" : "default" }}
+          style={{ position: "relative", width: 212, height: 212, borderRadius: 14, flex: "none", background: coverBg(art, title), boxShadow: "0 20px 44px var(--shadow)", cursor: isReal ? "pointer" : "default" }}
         >
           {isReal && (
             <span className="cover-edit" style={{ position: "absolute", right: 8, bottom: 8, width: 30, height: 30, borderRadius: 8, background: "rgba(0,0,0,.55)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => void replaceCover()} title="Replace cover">

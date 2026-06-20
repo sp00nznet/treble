@@ -1,4 +1,4 @@
-import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Play, Pause, Maximize2, ExternalLink, ListMusic, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Play, Pause, Maximize2, PictureInPicture2, MessageSquareText, ListMusic, Volume2, VolumeX, Loader2, PanelRightClose } from "lucide-react";
 import { useStore } from "../store";
 import { Scrubber } from "./Scrubber";
 import { SleepTimer } from "./SleepTimer";
@@ -6,7 +6,7 @@ import { VolumeSlider } from "./VolumeSlider";
 import { fmtTime } from "../lib/format";
 import { useSyncedLyrics } from "../lib/useSyncedLyrics";
 import { useLike } from "../lib/useLike";
-import { isArtUrl } from "../types";
+import { coverBg } from "../lib/art";
 
 /**
  * Persistent docked Now-Playing panel (the "Studio" layout signature — there is
@@ -31,15 +31,16 @@ export function NowPlayingPanel() {
         <span className="eyebrow">Now playing</span>
         <div style={{ display: "flex", gap: 10, alignItems: "center", color: "var(--text-2)" }}>
           <SleepTimer />
-          <ExternalLink size={17} className="press" style={{ cursor: "pointer" }} onClick={() => dispatch({ type: "setMini", open: true })} />
-          <Maximize2 size={17} className="press" onClick={() => dispatch({ type: "setNp", open: true })} />
+          <PictureInPicture2 size={17} className="press" style={{ cursor: "pointer" }} onClick={() => dispatch({ type: "setMini", open: true })} aria-label="Mini player" />
+          <Maximize2 size={17} className="press" style={{ cursor: "pointer" }} onClick={() => dispatch({ type: "setNp", open: true })} aria-label="Full screen" />
+          <PanelRightClose size={17} className="press" style={{ cursor: "pointer" }} onClick={() => dispatch({ type: "setPlayerOpen", open: false })} aria-label="Hide panel" />
         </div>
       </div>
 
       <button
         className="press"
         onClick={() => dispatch({ type: "setNp", open: true })}
-        style={{ position: "relative", width: "100%", aspectRatio: "1", borderRadius: 16, border: "none", background: np && isArtUrl(np.art) ? `center/cover no-repeat url(${np.art})` : np?.art || "var(--surface-2)", boxShadow: "0 16px 34px var(--shadow)", marginBottom: 18, cursor: "pointer" }}
+        style={{ position: "relative", width: "100%", aspectRatio: "1", borderRadius: 16, border: "none", background: np ? coverBg(np.art, np.title) : "var(--surface-2)", boxShadow: "0 16px 34px var(--shadow)", marginBottom: 18, cursor: "pointer" }}
       >
         {state.loading && (
           <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.35)", borderRadius: 16 }}>
@@ -98,7 +99,7 @@ export function NowPlayingPanel() {
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
             <span className="eyebrow" style={{ color: "var(--accent)" }}>Lyrics</span>
-            <ExternalLink size={14} style={{ color: "var(--text-3)", cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); dispatch({ type: "setLyrics", open: true }); }} />
+            <MessageSquareText size={14} style={{ color: "var(--text-3)", cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); dispatch({ type: "setLyrics", open: true }); }} aria-label="Pop out lyrics" />
           </div>
           <div style={{ fontSize: 13.5, lineHeight: 1.7, color: "var(--text-3)" }}>
             {teaser.map((l, i) => (

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Pin, X, Maximize2, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Play, Pause } from "lucide-react";
+import { X, Maximize2, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Play, Pause } from "lucide-react";
 import { useStore } from "../store";
 import { useSyncedLyrics } from "../lib/useSyncedLyrics";
 import { Scrubber } from "./Scrubber";
@@ -24,6 +24,9 @@ function FloatingShell({ title, onClose, start, width, height, children }: {
   const drag = useRef<{ dx: number; dy: number } | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
+    // Don't start a drag when pressing a control (e.g. the close button) — otherwise
+    // pointer-capture swallows its click.
+    if ((e.target as HTMLElement).closest("[data-ctl]")) return;
     const box = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect();
     drag.current = { dx: e.clientX - box.left, dy: e.clientY - box.top };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -46,8 +49,9 @@ function FloatingShell({ title, onClose, start, width, height, children }: {
         style={{ height: 32, flex: "none", display: "flex", alignItems: "center", padding: "0 12px", gap: 8, cursor: "grab", borderBottom: "1px solid var(--border)", touchAction: "none" }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--text-3)" }}>{title}</span>
         <span style={{ flex: 1 }} />
-        <Pin size={14} className="press" style={{ color: "var(--text-3)" }} />
-        <X size={15} className="press" style={{ color: "var(--text-3)", cursor: "pointer" }} onClick={onClose} />
+        <button data-ctl className="press" onClick={onClose} aria-label="Close" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, border: "none", background: "transparent", color: "var(--text-3)", cursor: "pointer", borderRadius: 6 }}>
+          <X size={15} />
+        </button>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>{children}</div>
     </div>

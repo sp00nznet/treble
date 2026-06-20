@@ -3,7 +3,7 @@ import { Home, Search, Compass, Library, Download, Settings, Plus, Pencil, Trash
 import { useStore } from "../store";
 import { usePlaylists } from "../lib/usePlaylists";
 import { deletePlaylist, renamePlaylist, newPlaylist } from "../lib/api";
-import { artBg } from "../lib/art";
+import { coverBg } from "../lib/art";
 import type { Screen } from "../types";
 
 const NAV: { key: Screen; label: string; Icon: typeof Home }[] = [
@@ -81,7 +81,7 @@ export function Sidebar() {
               onClick={() => renaming?.id === p.id || dispatch({ type: "openDetail", id: p.id })}
               onContextMenu={(e) => { e.preventDefault(); setMenu({ id: p.id, x: e.clientX, y: e.clientY }); }}
             >
-              <span style={{ width: 34, height: 34, borderRadius: 7, flex: "none", background: artBg(p.art) }} />
+              <span style={{ width: 34, height: 34, borderRadius: 7, flex: "none", background: coverBg(p.art, p.title) }} />
               {renaming?.id === p.id ? (
                 <input
                   autoFocus
