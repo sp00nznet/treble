@@ -39,7 +39,9 @@ fn is_audio(path: &Path) -> bool {
 
 fn read_track(path: &Path) -> Option<Track> {
     let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("Unknown").to_string();
-    let id = format!("local:{}", path.to_string_lossy());
+    // Forward slashes so the id round-trips cleanly through convertFileSrc + the
+    // asset-protocol scope glob (which matches with `/`).
+    let id = format!("local:{}", path.to_string_lossy().replace('\\', "/"));
 
     // Tags are best-effort: a file with no tags still becomes a playable track.
     let (mut title, mut artist, mut album, mut secs) = (stem.clone(), String::new(), String::new(), 0u32);

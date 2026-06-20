@@ -131,14 +131,30 @@ fn download(url: &str, dest: &std::path::Path) -> Result<()> {
 
 /// True if a tool can actually be invoked (used for friendly "missing tool" errors).
 pub fn is_available(name: &str) -> bool {
+    use std::collections::HashSet;
+    use std::sync::Mutex;
+    static CONFIRMED: Mutex<Option<HashSet<String>>> = Mutex::new(None);
+    // A tool that's confirmed present stays present for the session — cache it so
+    // we don't spawn `--version` on every stream resolve.
+    if let Ok(g) = CONFIRMED.lock() {
+        if g.as_ref().is_some_and(|s| s.contains(name)) {
+            return true;
+        }
+    }
     let path = resolve(name);
-    new_command(&path)
+    let ok = new_command(&path)
         .arg("--version")
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
         .map(|s| s.success())
-        .unwrap_or(false)
+        .unwrap_or(false);
+    if ok {
+        if let Ok(mut g) = CONFIRMED.lock() {
+            g.get_or_insert_with(HashSet::new).insert(name.to_string());
+        }
+    }
+    ok
 }
 
 /// Build a `Command` for a tool, erroring early if it's clearly unavailable.

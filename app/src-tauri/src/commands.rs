@@ -37,25 +37,37 @@ pub fn tools_status() -> ToolsStatus {
     }
 }
 
+// NOTE: search / resolve_stream / get_lyrics are `async` on purpose. In Tauri,
+// *synchronous* commands run on the main thread and block the UI — these do
+// network I/O and spawn yt-dlp, so they run on the blocking pool instead.
+
 #[tauri::command]
-pub fn search(query: String) -> CmdResult<Vec<Track>> {
-    catalog::search(&query, 20)
+pub async fn search(query: String) -> CmdResult<Vec<Track>> {
+    tauri::async_runtime::spawn_blocking(move || catalog::search(&query, 40))
+        .await
+        .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
 }
 
 #[tauri::command]
-pub fn resolve_stream(id: String) -> CmdResult<String> {
-    crate::tlog!("resolve_stream: {id}");
-    let r = catalog::resolve_stream(&id);
-    match &r {
-        Ok(u) => crate::tlog!("resolve_stream ok ({} chars)", u.len()),
-        Err(e) => crate::tlog!("resolve_stream ERR: {e}"),
-    }
-    r
+pub async fn resolve_stream(id: String) -> CmdResult<String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::tlog!("resolve_stream: {id}");
+        let r = catalog::resolve_stream(&id);
+        match &r {
+            Ok(u) => crate::tlog!("resolve_stream ok ({} chars)", u.len()),
+            Err(e) => crate::tlog!("resolve_stream ERR: {e}"),
+        }
+        r
+    })
+    .await
+    .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
 }
 
 #[tauri::command]
-pub fn get_lyrics(title: String, artist: String, album: String, duration_secs: u32) -> CmdResult<Lyrics> {
-    lyrics::fetch(&title, &artist, &album, duration_secs)
+pub async fn get_lyrics(title: String, artist: String, album: String, duration_secs: u32) -> CmdResult<Lyrics> {
+    tauri::async_runtime::spawn_blocking(move || lyrics::fetch(&title, &artist, &album, duration_secs))
+        .await
+        .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
 }
 
 #[tauri::command]
@@ -382,8 +394,11 @@ pub fn pick_folder(_app: AppHandle) -> Option<String> {
 
 /// Scan a folder for audio files and save them as a "Local Files" playlist.
 #[tauri::command]
-pub fn scan_local_folder(lib: State<Arc<Library>>, folder: String) -> CmdResult<Playlist> {
-    let tracks = local::scan_folder(&PathBuf::from(&folder))?;
+pub async fn scan_local_folder(lib: State<'_, Arc<Library>>, folder: String) -> CmdResult<Playlist> {
+    let tracks = tauri::async_runtime::spawn_blocking(move || local::scan_folder(&PathBuf::from(&folder)))
+        .await
+        .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))??;
+    crate::tlog!("local scan: {} tracks", tracks.len());
     let id = lib.create_playlist("Local Files", &tracks)?;
     lib.get_playlist(&id).map(|o| o.unwrap_or_default())
 }
