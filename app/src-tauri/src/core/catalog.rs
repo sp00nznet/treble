@@ -15,8 +15,22 @@ use crate::core::models::{ParsedTrack, Track};
 use crate::core::tools;
 use serde_json::Value;
 
-/// Search the catalog. `limit` caps results.
+/// Search the catalog. Dispatches to the active backend: native `rustypipe`
+/// (Android / `native-catalog` feature) or `yt-dlp` (desktop default).
 pub fn search(query: &str, limit: u32) -> Result<Vec<Track>> {
+    #[cfg(feature = "native-catalog")]
+    {
+        return crate::core::catalog_native::search(query, limit);
+    }
+    #[cfg(not(feature = "native-catalog"))]
+    {
+        ytdlp_search(query, limit)
+    }
+}
+
+/// yt-dlp-backed search (desktop default).
+#[cfg_attr(feature = "native-catalog", allow(dead_code))]
+fn ytdlp_search(query: &str, limit: u32) -> Result<Vec<Track>> {
     if query.trim().is_empty() {
         return Ok(vec![]);
     }
@@ -53,6 +67,19 @@ pub fn search(query: &str, limit: u32) -> Result<Vec<Track>> {
 /// Resolve a direct, streamable audio URL for a catalog id.
 /// The URL is temporary (signed) — resolve on demand, don't persist it.
 pub fn resolve_stream(id: &str) -> Result<String> {
+    #[cfg(feature = "native-catalog")]
+    {
+        return crate::core::catalog_native::resolve_stream(id);
+    }
+    #[cfg(not(feature = "native-catalog"))]
+    {
+        ytdlp_resolve_stream(id)
+    }
+}
+
+/// yt-dlp-backed stream resolution (desktop default).
+#[cfg_attr(feature = "native-catalog", allow(dead_code))]
+fn ytdlp_resolve_stream(id: &str) -> Result<String> {
     let out = tools::command("yt-dlp")?
         .args(["-f", "bestaudio/best", "-g", "--no-warnings", id])
         .output()?;
@@ -135,6 +162,7 @@ fn parse_duration(s: &str) -> Option<u32> {
 }
 
 /// Best-effort map of a yt-dlp JSON object to a `Track`.
+#[cfg_attr(feature = "native-catalog", allow(dead_code))]
 fn track_from_json(v: &Value) -> Option<Track> {
     let id = v.get("id")?.as_str()?.to_string();
     let title = v.get("title").and_then(Value::as_str).unwrap_or("Unknown").to_string();
@@ -161,6 +189,7 @@ fn track_from_json(v: &Value) -> Option<Track> {
 }
 
 /// Pick a reasonable thumbnail URL from yt-dlp's `thumbnails` array or `thumbnail`.
+#[cfg_attr(feature = "native-catalog", allow(dead_code))]
 fn best_thumbnail(v: &Value) -> String {
     if let Some(arr) = v.get("thumbnails").and_then(Value::as_array) {
         // thumbnails are usually smallest→largest; take the last.

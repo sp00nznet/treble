@@ -43,10 +43,12 @@ Under that pretty face, Treble pulls its catalog from **YouTube Music** (via a f
 
 ## ✨ Features
 
-- 🎧 **Real playback & full downloads** — stream from YouTube Music or save tracks for offline (`yt-dlp` + `ffmpeg` on desktop, native Rust on mobile).
+- 🎧 **Real playback & full downloads** — stream from YouTube Music or save tracks for offline (`yt-dlp` + `ffmpeg` on desktop, native Rust [`rustypipe`](https://codeberg.org/ThetaDev/rustypipe) on mobile).
 - 📋 **Spotify playlist import** — copy a playlist in Spotify (`Ctrl+A → Ctrl+C` on the track list), hit **Import** in Treble, and we parse it, match every track on YouTube Music, and save it as a real, playable Treble playlist.
-- 🎤 **Time-synced lyrics** — pulled from [LrcLib](https://lrclib.net), highlighted line-by-line, in a pop-out window or the full-screen split view.
-- 📡 **LAN sync, no cloud, no account** — your phone and your desktop find each other on the same Wi-Fi and sync your library directly. No server to run, nothing leaves your network.
+- 🎤 **Time-synced lyrics** — pulled from [LrcLib](https://lrclib.net), highlighting the active line as it plays; click any line to seek. Pop-out window or full-screen split view.
+- 📡 **"Send to…" any device on your Wi-Fi** — Spotify-Connect-style. Treble devices find each other over the LAN (mDNS); right-click a song → **Send to ▸** and it plays on the other device. No cloud, no account, nothing leaves your network.
+- 📁 **Local files too** — point Treble at a music folder and it indexes your own files (tags and all) right alongside streamed tracks.
+- 😴 **Sleep timer** — 15/30/45/60 minutes or end-of-track, with a live countdown.
 - 🌗 **Light + dark, 4 accents** — Amber, Coral, Rose, Gold. Instant theme swap, no reload.
 - 🪟 **Pop-out mini-player & lyrics windows** — real always-on-top windows on desktop.
 - 📱 **Actually cross-platform** — Win32, Ubuntu/Linux, and a **sideloadable Android APK** from one codebase.

@@ -3,10 +3,11 @@
 Treble's Android app is the **same** Tauri + React + Rust app as desktop, packaged as a
 sideloadable APK. You need the Android SDK/NDK once; after that it's two npm scripts.
 
-> Status note: the desktop catalog shells out to `yt-dlp`, which can't run on Android. The Android
-> build runs the full UI and plays downloaded/synced tracks today; the in-app YouTube Music
-> search/download engine on Android is the native-Rust (`rustypipe`) follow-up tracked in
-> [ROADMAP.md](../ROADMAP.md). The shared Rust core means that lands without touching the UI.
+> The Android build uses the **native Rust catalog** (`rustypipe`, the `native-catalog` cargo feature)
+> for search + stream resolution — `yt-dlp` can't run on Android, but `rustypipe` is pure Rust and runs
+> everywhere. The `npm run android:*` scripts pass that feature for you. What still needs on-device
+> verification (no SDK in this environment): the `MediaStyle` notification, edge-to-edge insets, and
+> the native download path — see [ROADMAP.md](../ROADMAP.md).
 
 ## 1. Install the Android toolchain
 

@@ -33,9 +33,13 @@ design that already exists. Read this before editing.
 4. Self-host fonts; add keyboard shortcuts (Esc closes overlays, ⌘K focuses search).
 
 ## Backend (now real — see ../ARCHITECTURE.md)
-- The Rust core is in `src-tauri/src/core/` (catalog, downloads, lyrics, library, spotify_import,
-  sync, tools). The frontend reaches it **only** through `src/lib/api.ts` — never `invoke` from a
-  component. `api.ts` falls back to `data/mock.ts` in a plain browser, so `npm run dev` still works.
+- The Rust core is in `src-tauri/src/core/` (catalog, catalog_native, downloads, lyrics, library,
+  local, spotify_import, sync, tools). The frontend reaches it **only** through `src/lib/api.ts` —
+  never `invoke` from a component. `api.ts` falls back to `data/mock.ts` in a plain browser, so
+  `npm run dev` still works.
+- `catalog` dispatches: yt-dlp (desktop default) or `catalog_native` (rustypipe, the `native-catalog`
+  feature → Android). `sync` does mDNS discovery + "send to device" (events: `sync:peer-found/lost`,
+  `sync:received`). `local` indexes on-disk files (`local:<path>` ids, played via the asset protocol).
 - Catalog/downloads shell out to `yt-dlp` (+ `ffmpeg`), located by `core::tools` (bundled
   `src-tauri/binaries/` first, then PATH). Run `npm run fetch-tools` to get them.
 - Progress is event-driven: `download:progress`, `import:progress`. Subscribe via `api.listen`.

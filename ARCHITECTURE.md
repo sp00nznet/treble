@@ -39,6 +39,11 @@ phone.** `yt-dlp` is then a *desktop-only convenience* for the download step (it
 formats beautifully); on Android, downloads use the stream URL `rustypipe` already resolved + a native
 fetch.
 
+In the code this lives behind one switch: `catalog::search` / `catalog::resolve_stream` dispatch to
+`catalog_native` (rustypipe, the `native-catalog` cargo feature → Android) or the yt-dlp path (desktop
+default). The frontend contract never changes. The `android:*` npm scripts enable the feature
+automatically.
+
 | Concern | Desktop (Win32/Linux) | Android |
 |---|---|---|
 | Search / metadata | `rustypipe` | `rustypipe` (same code) |

@@ -11,9 +11,9 @@
     "tauri": "tauri",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
-    "android": "tauri android dev",
+    "android": "tauri android dev --features native-catalog",
     "android:init": "tauri android init",
-    "android:build": "tauri android build --apk",
+    "android:build": "tauri android build --apk --features native-catalog",
     "fetch-tools": "node ../scripts/fetch-tools.mjs",
     "test:rust": "cd src-tauri && cargo test"
   },

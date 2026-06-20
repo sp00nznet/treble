@@ -8,41 +8,41 @@ Treble's UI is **done**; the backend is being wired up screen by screen. This is
 - [x] App shell: frameless titlebar, sidebar, persistent docked "Studio" player (no bottom bar)
 - [x] State store (Context + reducer), theming engine, design tokens
 - [x] Repo, docs, credits, GPL-3.0 license
-- [x] **Rust core scaffold** — `core/` modules (catalog, downloads, lyrics, library, spotify_import, sync) with the Tauri command surface registered
+- [x] **Rust core** — `core/` modules (catalog, downloads, lyrics, library, local, spotify_import, sync) + Tauri command surface
 - [x] **Frontend ↔ core bridge** (`src/lib/api.ts`) with browser mock fallback
-- [x] **Spotify clipboard parser** — turns a copied Spotify track list into structured tracks
-- [x] **LRCLIB lyrics** integration
+- [x] **Live search → play** — `yt-dlp`-backed search wired to the Search screen; real streamed playback
+- [x] **Real downloads** — `yt-dlp` + `ffmpeg` pipeline with live `download:progress` into the Downloads screen
+- [x] **Spotify import** — clipboard parser → match on YouTube Music (live progress) → real, playable playlist
+- [x] **LRCLIB lyrics** — synced, highlighting the active line from playback position; click a line to seek
+- [x] **SQLite library** — playlists, tracks, download state; the portable unit of sync
+- [x] **Live scrubber + seek** — every player surface driven by real position; click/seek anywhere
+- [x] **Sleep timer** — 15/30/45/60 min + end-of-track, with live countdown
+- [x] **Local file library** — scan a folder (tag-read via lofty), play off disk via the asset protocol
+- [x] **LAN devices + "Send to…"** — mDNS discovery (`_treble._tcp`) + TCP send; Spotify-Connect-style Devices list and right-click → Send to ▸
+- [x] **Native catalog engine** — `rustypipe` (InnerTube) behind the `native-catalog` feature → the Android-parity path
 
-## 🚧 In progress
+## 🚧 In progress / next
 
-- [ ] Wire `catalog::search` (rustypipe) end-to-end into the Search screen
-- [ ] Real playback: resolve stream URL → audio element/native player → drive scrubber from `player:position` events
-- [ ] Real downloads: `yt-dlp` + `ffmpeg` pipeline on desktop, progress events into the Downloads screen
-- [ ] Spotify import: matching pass (parsed tracks → YouTube Music) + "create playlist" wiring
-- [ ] SQLite library: persist playlists, liked songs, downloaded/cache state
-
-## 🔜 Next
-
-- [ ] LAN sync: mDNS discovery + library exchange + conflict resolution
-- [ ] Android: `tauri android init`, native download path, `MediaStyle` notification, edge-to-edge insets, sideloadable APK in CI
-- [ ] Self-host fonts (Bricolage + Hanken) for offline desktop
+- [ ] **Android**: `tauri android init` + build the APK with `--features native-catalog`; native `MediaStyle`
+      notification, edge-to-edge insets, system back; verify on-device (needs SDK/NDK)
+- [ ] **Sync conflict resolution** — per-device clocks for the snapshot merge (currently last-writer-wins)
+- [ ] **Sent-playlist round-trip polish** — open the freshly-merged playlist by its new id after a Send
 - [ ] Make the mini-player & lyrics pop-outs real `WebviewWindow`s sharing core events
-- [ ] Full Settings surface wired to real values (Content, Storage, Privacy, About)
+- [ ] Real queue (next-up / reorder) + prev/next wired to the queue
+- [ ] Full Settings surface wired to real values (Content, Storage, Privacy, About) + a Local-files manager
+- [ ] Self-host fonts (Bricolage + Hanken) for offline desktop
 
 ## 💡 Ideas worth stealing (future)
 
 - **Smart match review** — when Spotify import is unsure about a track, show a little "is this the right
-  one?" picker instead of guessing silently.
-- **Discord Rich Presence** (desktop) — InnerTune has it; it's a fun, low-cost win.
-- **Backup & restore** — export/import the whole library + settings to a file (also the always-available
-  sync fallback).
-- **Sleep timer & crossfade/gapless** — the Settings UI already has the toggles; make them real.
+  one?" picker instead of guessing silently. *(Highest-value next feature.)*
 - **"Start radio"** — the context menu already offers it; rustypipe exposes related-tracks.
-- **Local file library** — index music already on disk and mix it with streamed tracks.
-- **Last.fm scrobbling** — optional, opt-in.
-- **Lyrics contribution** — if LRCLIB is missing lyrics, let users submit them back upstream.
+- **Crossfade / gapless** — the Settings UI already has the toggles; make them real.
 - **Per-track download quality** override and a global storage cap with LRU eviction.
+- **Lyrics contribution** — if LRCLIB is missing lyrics, let users submit them back upstream.
 - **Android Auto / desktop media keys** — proper OS media session integration everywhere.
+- **Discord Rich Presence** — *parked* (low priority, per project owner).
+- **Last.fm scrobbling** — *parked* (low priority, per project owner).
 
 ## 🧭 Guiding principles
 

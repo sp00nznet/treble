@@ -55,6 +55,10 @@ Produces a `.deb` and an AppImage under `app/src-tauri/target/release/bundle/`.
 
 ## Android
 
+> The Android build uses the **native Rust catalog** (`rustypipe`, the `native-catalog` cargo feature)
+> instead of `yt-dlp` — see [ARCHITECTURE.md](../ARCHITECTURE.md). The `android:*` npm scripts pass that
+> feature automatically.
+
 > **One-time setup required.** You need the Android SDK + NDK and `ANDROID_HOME` / `NDK_HOME` set.
 > `scripts/setup-android.md` walks through it; the short version:
 

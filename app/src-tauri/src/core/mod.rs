@@ -4,6 +4,8 @@
 //! `commands.rs`; nothing here knows about React. See ARCHITECTURE.md.
 
 pub mod catalog;
+#[cfg(feature = "native-catalog")]
+pub mod catalog_native;
 pub mod downloads;
 pub mod error;
 pub mod library;
