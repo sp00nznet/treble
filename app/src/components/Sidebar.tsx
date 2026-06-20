@@ -47,7 +47,7 @@ export function Sidebar() {
   return (
     <nav className="sidebar">
       <div className="brand">
-        <span className="brand-mark">♪</span>
+        <img className="brand-mark" src="/treble-mark.png" alt="" width={30} height={30} />
         <span className="brand-name">Treble</span>
       </div>
 

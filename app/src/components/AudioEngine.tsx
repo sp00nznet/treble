@@ -17,7 +17,8 @@ import { trackDuration } from "../lib/format";
 export function AudioEngine() {
   const { state, dispatch } = useStore();
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const loadedId = useRef<string | null>(null);
+  const loadedId = useRef<string | null>(null); // the track we've committed to load
+  const readyId = useRef<string | null>(null); // the track whose src is actually set
   const playingRef = useRef(state.playing);
   playingRef.current = state.playing;
   // Mirrored to refs so the (one-time) audio-element event handlers read fresh values.
@@ -83,17 +84,26 @@ export function AudioEngine() {
     if (loadedId.current === track.id) return;
     if (!isTauri()) return;
 
+    // A different track was requested: STOP the current audio immediately so the
+    // old song/podcast can't keep playing while the new one resolves, and mark
+    // the loaded source stale so the play/pause effect won't resume it.
+    el.pause();
+    readyId.current = null;
+
     let cancelled = false;
     loadedId.current = track.id;
     uiLog(`play requested: ${track.title} (${track.id})`);
     (async () => {
       try {
         const url = await resolveStream(track.id);
-        if (cancelled) return;
+        // Bail if cancelled or the user already moved on to yet another track.
+        if (cancelled || loadedId.current !== track.id) return;
         uiLog(`stream resolved, setting src + play`);
         el.src = url;
+        readyId.current = track.id;
         if (playingRef.current) await el.play().catch((e) => uiLog(`play() rejected: ${e}`));
       } catch (e) {
+        if (cancelled) return;
         dispatch({ type: "setLoading", loading: false });
         uiLog(`resolveStream failed: ${e}`);
         // Couldn't resolve a stream — skip this track (bounded, see onError).
@@ -108,13 +118,15 @@ export function AudioEngine() {
     };
   }, [state.nowPlaying]);
 
-  // Reflect play/pause.
+  // Reflect play/pause — but only act on the audio that actually belongs to the
+  // current track (never resume a stale source that's still being replaced).
   useEffect(() => {
     const el = audioRef.current;
     if (!el || !el.src) return;
+    if (readyId.current !== state.nowPlaying?.id) return;
     if (state.playing) el.play().catch(() => {});
     else el.pause();
-  }, [state.playing]);
+  }, [state.playing, state.nowPlaying]);
 
   // Reflect volume.
   useEffect(() => {

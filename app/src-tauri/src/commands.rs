@@ -44,7 +44,7 @@ pub fn tools_status() -> ToolsStatus {
 
 #[tauri::command]
 pub async fn search(query: String) -> CmdResult<Vec<Track>> {
-    tauri::async_runtime::spawn_blocking(move || catalog::search(&query, 40))
+    tauri::async_runtime::spawn_blocking(move || catalog::search(&query, 80))
         .await
         .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
 }

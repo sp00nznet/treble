@@ -36,11 +36,14 @@ async fn search_async(query: &str, limit: u32) -> Result<Vec<Track>> {
     if query.trim().is_empty() {
         return Ok(vec![]);
     }
-    let res = client()
-        .query()
+    let q = client().query();
+    let mut res = q
         .music_search_tracks(query)
         .await
         .map_err(|e| CoreError::Network(e.to_string()))?;
+    // The first page is only ~20 results — pull more pages up to the requested
+    // limit so searches aren't so sparse (best-effort; ignore continuation errors).
+    let _ = res.items.extend_limit(&q, limit as usize).await;
     Ok(res.items.items.into_iter().take(limit as usize).map(track_from_item).collect())
 }
 

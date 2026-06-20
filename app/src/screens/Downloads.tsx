@@ -7,7 +7,6 @@ import { isArtUrl, type Track } from "../types";
 
 export function Downloads() {
   const { state, dispatch } = useStore();
-  const autoDownload = state.autoDownload;
   const [downloaded, setDownloaded] = useState<Track[]>(TRACKS.filter((t) => t.downloaded));
   // In-flight downloads keyed by track id (driven by `download:progress`).
   const [active, setActive] = useState<Record<string, DownloadProgress>>({});
@@ -48,13 +47,10 @@ export function Downloads() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 20, borderLeft: "1px solid var(--border)" }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }} title="Cache tracks for offline as you play them">Auto-download</span>
-          <span
-            onClick={() => dispatch({ type: "setAutoDownload", on: !autoDownload })}
-            style={{ width: 42, height: 24, borderRadius: 13, background: autoDownload ? "var(--accent)" : "var(--surface-2)", position: "relative", cursor: "pointer", transition: "background .15s" }}
-          >
-            <span style={{ position: "absolute", top: 2, left: autoDownload ? 20 : 2, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.3)", transition: "left .15s" }} />
+          <span style={{ fontSize: 13, color: "var(--text-2)" }}>
+            Auto-download <b style={{ color: state.autoDownload ? "var(--accent)" : "var(--text-2)" }}>{state.autoDownload ? "On" : "Off"}</b>
           </span>
+          <button className="chip press" style={{ fontSize: 12 }} onClick={() => dispatch({ type: "go", screen: "settings" })}>Settings</button>
         </div>
       </div>
 

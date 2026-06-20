@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { Plus, Import, FolderPlus, Loader2, Search as SearchIcon, Mic, Heart } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Import, FolderPlus, Loader2, Mic, Heart } from "lucide-react";
 import { useStore } from "../store";
 import { LIBRARY } from "../data/mock";
-import { listPlaylists, pickFolder, scanLocalFolder, searchPodcasts, listSubscriptions, unsubscribePodcast, listAllTracks, newPlaylist, type Podcast } from "../lib/api";
+import { listPlaylists, pickFolder, scanLocalFolder, listSubscriptions, unsubscribePodcast, listAllTracks, newPlaylist, type Podcast } from "../lib/api";
 import { artBg } from "../lib/art";
 import type { LibraryItem, Track } from "../types";
 import { isTauri } from "../lib/windows";
@@ -94,7 +94,7 @@ export function Library() {
       </div>
 
       {tab === "Podcasts" && isTauri() ? (
-        <PodcastSearch />
+        <PodcastLibrary />
       ) : tab === "Songs" && isTauri() ? (
         <SongsTab />
       ) : items.length === 0 && tab !== "Playlists" ? (
@@ -161,63 +161,35 @@ function SongsTab() {
   );
 }
 
-/** Subscribed shows + search to find/add more. */
-function PodcastSearch() {
+/** Subscribed shows only. Discovery/search lives under the main Search screen. */
+function PodcastLibrary() {
   const { state, dispatch } = useStore();
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Podcast[]>([]);
   const [subs, setSubs] = useState<Podcast[]>([]);
-  const [loading, setLoading] = useState(false);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
-  const seq = useRef(0);
 
   useEffect(() => { listSubscriptions().then(setSubs).catch(() => {}); }, [state.libRefresh]);
 
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) { setResults([]); return; }
-    setLoading(true);
-    const mine = ++seq.current;
-    const t = setTimeout(async () => {
-      try { const r = await searchPodcasts(q); if (mine === seq.current) setResults(r); }
-      finally { if (mine === seq.current) setLoading(false); }
-    }, 350);
-    return () => clearTimeout(t);
-  }, [query]);
-
   const open = (p: Podcast) => dispatch({ type: "openPodcast", show: { feedUrl: p.feed_url, title: p.title, author: p.author, art: p.art } });
-  const ShowCard = ({ p, onCtx }: { p: Podcast; onCtx?: (e: React.MouseEvent) => void }) => (
-    <div className="card" style={{ border: "none", background: "transparent", padding: 0 }} onClick={() => open(p)} onContextMenu={onCtx}>
-      <div className="art" style={{ background: artBg(p.art), marginBottom: 11 }} />
-      <div className="ellipsis" style={{ fontSize: 14, fontWeight: 700 }}>{p.title}</div>
-      <div className="ellipsis" style={{ fontSize: 13, color: "var(--text-2)", marginTop: 2 }}>{p.author}</div>
-    </div>
-  );
+
+  if (subs.length === 0) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text-2)", fontSize: 14, padding: "10px 2px" }}>
+        <Mic size={18} /> No subscriptions yet. Find shows under <b>&nbsp;Search → Podcasts&nbsp;</b> and subscribe — they'll appear here.
+      </div>
+    );
+  }
 
   return (
     <div>
-      {subs.length > 0 && (
-        <>
-          <h2 className="h2" style={{ fontSize: 18, marginBottom: 12 }}>Your shows</h2>
-          <div className="grid-5" style={{ marginBottom: 30 }}>
-            {subs.map((p) => <ShowCard key={p.id} p={p} onCtx={(e) => { e.preventDefault(); setMenu({ id: p.id, x: e.clientX, y: e.clientY }); }} />)}
+      <div className="grid-5">
+        {subs.map((p) => (
+          <div key={p.id} className="card" style={{ border: "none", background: "transparent", padding: 0 }} onClick={() => open(p)} onContextMenu={(e) => { e.preventDefault(); setMenu({ id: p.id, x: e.clientX, y: e.clientY }); }}>
+            <div className="art" style={{ background: artBg(p.art), marginBottom: 11 }} />
+            <div className="ellipsis" style={{ fontSize: 14, fontWeight: 700 }}>{p.title}</div>
+            <div className="ellipsis" style={{ fontSize: 13, color: "var(--text-2)", marginTop: 2 }}>{p.author}</div>
           </div>
-        </>
-      )}
-
-      <div style={{ position: "relative", maxWidth: 480, marginBottom: 24 }}>
-        <SearchIcon size={18} style={{ position: "absolute", left: 16, top: "calc(50% - 9px)", color: "var(--text-3)" }} />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search podcasts to subscribe…" style={{ width: "100%", height: 48, borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", padding: "0 16px 0 46px", fontSize: 15, fontFamily: "inherit", color: "var(--text)", outline: "none" }} />
-        {loading && <Loader2 size={18} className="spin" style={{ position: "absolute", right: 16, top: "calc(50% - 9px)", color: "var(--text-3)" }} />}
+        ))}
       </div>
-
-      {results.length === 0 && !loading ? (
-        subs.length === 0 && <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text-2)", fontSize: 14, padding: "10px 2px" }}>
-          <Mic size={18} /> {query ? "No shows found." : "Find any podcast and subscribe — episodes play right here."}
-        </div>
-      ) : (
-        <div className="grid-5">{results.map((p) => <ShowCard key={p.id} p={p} />)}</div>
-      )}
 
       {menu && (
         <>

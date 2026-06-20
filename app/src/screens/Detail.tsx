@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Play, Heart, Download, MoreHorizontal, Clock, Pencil, Trash2, Check, X, Star, ChevronUp, ChevronDown, Image as ImageIcon } from "lucide-react";
+import { Play, Download, MoreHorizontal, Clock, Pencil, Trash2, Check, X, Star, ChevronUp, ChevronDown, Image as ImageIcon } from "lucide-react";
 import { useStore } from "../store";
 import { PLAYLISTS, TRACKS, ART } from "../data/mock";
 import { getPlaylist, deletePlaylist, renamePlaylist, downloadMany, setRating, pickImage, setPlaylistCover, listLiked, type CorePlaylist } from "../lib/api";
@@ -17,16 +17,6 @@ function loadSort(): { key: SortKey; dir: "asc" | "desc" } {
     if (s) return JSON.parse(s);
   } catch { /* ignore */ }
   return { key: "index", dir: "asc" };
-}
-function isFav(id: string): boolean {
-  try { return JSON.parse(localStorage.getItem("treble.favPlaylists") || "[]").includes(id); } catch { return false; }
-}
-function toggleFav(id: string): boolean {
-  let list: string[] = [];
-  try { list = JSON.parse(localStorage.getItem("treble.favPlaylists") || "[]"); } catch { /* ignore */ }
-  const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-  try { localStorage.setItem("treble.favPlaylists", JSON.stringify(next)); } catch { /* ignore */ }
-  return next.includes(id);
 }
 
 type ColKey = "artist" | "album" | "rating";
@@ -72,8 +62,6 @@ export function Detail() {
   const baseTracks: Track[] = real?.tracks ?? (demo ? TRACKS : []);
   const subtitle = `${baseTracks.length} song${baseTracks.length === 1 ? "" : "s"}`;
   const isReal = !!real && !isLikedView; // Liked Songs isn't renamable/deletable
-  const [fav, setFav] = useState(false);
-  useEffect(() => { setFav(state.detailId ? isFav(state.detailId) : false); }, [state.detailId]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -221,15 +209,6 @@ export function Detail() {
 
       <div style={{ flexShrink: 0, padding: "18px 34px 8px", display: "flex", alignItems: "center", gap: 18 }}>
         <button className="fab press" style={{ width: 56, height: 56, boxShadow: "0 10px 24px rgba(255,107,92,.4)" }} onClick={playAll}><Play size={24} fill="#fff" /></button>
-        {!isLikedView && (
-          <Heart
-            size={26}
-            className="press"
-            style={{ color: fav ? "var(--accent)" : "var(--text-3)", cursor: "pointer" }}
-            fill={fav ? "currentColor" : "none"}
-            onClick={() => { if (state.detailId) setFav(toggleFav(state.detailId)); }}
-          />
-        )}
         <Download size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={downloadAll} />
         <div style={{ position: "relative" }}>
           <MoreHorizontal size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={() => setMenuOpen((o) => !o)} />

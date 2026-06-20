@@ -1,6 +1,5 @@
 import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Play, Pause, Maximize2, ExternalLink, ListMusic, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { useStore } from "../store";
-import { toggleFloating } from "../lib/windows";
 import { Scrubber } from "./Scrubber";
 import { SleepTimer } from "./SleepTimer";
 import { VolumeSlider } from "./VolumeSlider";
@@ -32,7 +31,7 @@ export function NowPlayingPanel() {
         <span className="eyebrow">Now playing</span>
         <div style={{ display: "flex", gap: 10, alignItems: "center", color: "var(--text-2)" }}>
           <SleepTimer />
-          <ExternalLink size={17} className="press" onClick={() => toggleFloating("mini", true, () => dispatch({ type: "setMini", open: true }))} />
+          <ExternalLink size={17} className="press" style={{ cursor: "pointer" }} onClick={() => dispatch({ type: "setMini", open: true })} />
           <Maximize2 size={17} className="press" onClick={() => dispatch({ type: "setNp", open: true })} />
         </div>
       </div>
@@ -99,7 +98,7 @@ export function NowPlayingPanel() {
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
             <span className="eyebrow" style={{ color: "var(--accent)" }}>Lyrics</span>
-            <ExternalLink size={14} style={{ color: "var(--text-3)" }} onClick={(e) => { e.stopPropagation(); toggleFloating("lyrics", true, () => dispatch({ type: "setLyrics", open: true })); }} />
+            <ExternalLink size={14} style={{ color: "var(--text-3)", cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); dispatch({ type: "setLyrics", open: true }); }} />
           </div>
           <div style={{ fontSize: 13.5, lineHeight: 1.7, color: "var(--text-3)" }}>
             {teaser.map((l, i) => (
