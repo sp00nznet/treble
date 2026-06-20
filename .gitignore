@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# build output
+dist/
+dist-ssr/
+**/dist/
+
+# rust / tauri
+**/target/
+app/src-tauri/gen/
+
+# bundled tools (downloaded by scripts/fetch-tools)
+app/src-tauri/binaries/
+
+# android signing / local
+*.keystore
+*.jks
+local.properties
+
+# misc
+.DS_Store
+Thumbs.db
+*.local
+.env
+.env.*
+.idea/
+.vscode/*
+!.vscode/extensions.json

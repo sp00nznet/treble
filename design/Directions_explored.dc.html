@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesque:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Hanken Grotesque',sans-serif;-webkit-font-smoothing:antialiased;}
+    ::-webkit-scrollbar{width:10px;height:10px;}
+    ::-webkit-scrollbar-thumb{background:rgba(140,130,120,.4);border-radius:8px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+  </style>
+</helmet>
+
+<div style="width:max-content;min-width:100%;min-height:100vh;box-sizing:border-box;padding:56px;background:#e7e5df;">
+
+  <div style="margin-bottom:44px;max-width:760px;">
+    <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#b06a3a;margin-bottom:10px;">Ember · Desktop Music Client</div>
+    <h1 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:40px;line-height:1.04;color:#22201d;letter-spacing:-.02em;">Three directions for the key screens</h1>
+    <p style="font-size:16px;line-height:1.55;color:#6b655e;margin-top:14px;max-width:640px;">Same warm amber/coral identity, three takes on layout & personality. Top row is Home; bottom row is the matching full-screen Now Playing. Pick a direction (or mix) and I'll build it out across every screen.</p>
+  </div>
+
+  <!-- ============ ROW 1 : HOME ============ -->
+  <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#8a8178;margin-bottom:20px;">Home</div>
+  <div style="display:flex;gap:48px;align-items:flex-start;margin-bottom:64px;">
+
+    <!-- ---- A : AURORA (conventional dark) ---- -->
+    <div style="flex:none;width:1180px;">
+      <div style="margin-bottom:14px;">
+        <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;color:#22201d;">A · Aurora</div>
+        <div style="font-size:14px;color:#7a736b;margin-top:2px;">Familiar three-pane, dark &amp; premium. Sidebar nav · bottom player bar.</div>
+      </div>
+      <div style="width:1180px;height:760px;background:#0f0d0c;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;display:flex;flex-direction:column;position:relative;">
+        <!-- titlebar -->
+        <div style="height:40px;flex:none;display:flex;align-items:center;padding:0 16px;background:#0b0a09;border-bottom:1px solid rgba(255,255,255,.04);gap:8px;">
+          <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+          <div style="flex:1;text-align:center;font-size:12px;color:#6f675f;font-weight:600;">Ember</div>
+          <div style="width:54px;"></div>
+        </div>
+        <div style="flex:1;display:flex;min-height:0;">
+          <!-- sidebar -->
+          <div style="width:236px;flex:none;background:#0b0a09;border-right:1px solid rgba(255,255,255,.05);padding:20px 14px;display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:4px 10px 16px;">
+              <div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#FFB35C,#FF6B5C);"></div>
+              <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:18px;color:#f5f1ea;letter-spacing:-.01em;">Ember</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;background:rgba(255,138,76,.14);color:#FF9A5C;font-weight:600;font-size:14px;">{{ icHome }} Home</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;color:#a59d94;font-weight:500;font-size:14px;">{{ icSearch }} Search</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;color:#a59d94;font-weight:500;font-size:14px;">{{ icExplore }} Explore</div>
+            <div style="height:1px;background:rgba(255,255,255,.06);margin:14px 6px;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 12px 10px;">
+              <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6f675f;">Library</span>
+              <span style="color:#6f675f;font-size:18px;">+</span>
+            </div>
+            <sc-for list="{{ playlists }}" as="p" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:11px;padding:7px 10px;border-radius:8px;">
+                <div style="width:38px;height:38px;border-radius:7px;flex:none;background:{{ p.art }};"></div>
+                <div style="min-width:0;">
+                  <div style="font-size:13px;font-weight:600;color:#e7e1d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.title }}</div>
+                  <div style="font-size:12px;color:#7a736b;">{{ p.sub }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <!-- main -->
+          <div style="flex:1;min-width:0;overflow:hidden;background:linear-gradient(180deg,#1a1411 0%,#0f0d0c 280px);padding:26px 28px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;">
+              <div>
+                <div style="font-size:13px;color:#9a9189;font-weight:600;">Good evening</div>
+                <h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:27px;color:#f5f1ea;letter-spacing:-.01em;margin-top:2px;">Welcome back</h2>
+              </div>
+              <div style="display:flex;gap:10px;align-items:center;">
+                <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.06);"></div>
+                <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#FFB35C,#FF6B5C);"></div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:30px;">
+              <sc-for list="{{ quickRow }}" as="q" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border-radius:9px;overflow:hidden;height:62px;padding-right:12px;">
+                  <div style="width:62px;height:62px;flex:none;background:{{ q.art }};"></div>
+                  <div style="font-size:14px;font-weight:700;color:#ece6de;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ q.title }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;">
+              <h3 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;color:#f0ebe3;">Made for you</h3>
+              <span style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7a736b;">Show all</span>
+            </div>
+            <div style="display:flex;gap:18px;">
+              <sc-for list="{{ madeForYou }}" as="m" hint-placeholder-count="4">
+                <div style="width:172px;flex:none;">
+                  <div style="width:172px;height:172px;border-radius:10px;background:{{ m.art }};box-shadow:0 10px 24px rgba(0,0,0,.32);margin-bottom:12px;position:relative;">
+                    <div style="position:absolute;right:10px;bottom:10px;width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#FFB35C,#FF6B5C);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(255,107,92,.4);">{{ icPlaySm }}</div>
+                  </div>
+                  <div style="font-size:14px;font-weight:700;color:#ece6de;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+                  <div style="font-size:13px;color:#8a8178;margin-top:2px;line-height:1.35;">{{ m.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <!-- player bar -->
+        <div style="height:78px;flex:none;background:#08070605;background:#0a0908;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 20px;gap:16px;">
+          <div style="display:flex;align-items:center;gap:13px;width:280px;">
+            <div style="width:52px;height:52px;border-radius:8px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);flex:none;"></div>
+            <div style="min-width:0;">
+              <div style="font-size:14px;font-weight:700;color:#f0ebe3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Midnight Coast</div>
+              <div style="font-size:12px;color:#8a8178;">Halsey Lane</div>
+            </div>
+            <div style="color:#FF8A4C;margin-left:6px;">{{ icHeart }}</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="display:flex;align-items:center;gap:22px;color:#cfc8bf;">
+              {{ icShuffle }} {{ icPrev }}
+              <div style="width:38px;height:38px;border-radius:50%;background:#f5f1ea;display:flex;align-items:center;justify-content:center;color:#0f0d0c;">{{ icPause }}</div>
+              {{ icNext }} {{ icRepeat }}
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:480px;">
+              <span style="font-size:11px;color:#8a8178;">1:42</span>
+              <div style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.12);position:relative;">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:linear-gradient(90deg,#FFB35C,#FF6B5C);border-radius:2px;"></div>
+                <div style="position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:#fff;"></div>
+              </div>
+              <span style="font-size:11px;color:#8a8178;">3:58</span>
+            </div>
+          </div>
+          <div style="width:280px;display:flex;align-items:center;justify-content:flex-end;gap:16px;color:#9a9189;">
+            {{ icQueue }} {{ icVolume }}
+            <div style="width:78px;height:4px;border-radius:2px;background:rgba(255,255,255,.12);position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:65%;background:#cfc8bf;border-radius:2px;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- B : EMBER EDITORIAL ---- -->
+    <div style="flex:none;width:1180px;">
+      <div style="margin-bottom:14px;">
+        <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;color:#22201d;">B · Editorial</div>
+        <div style="font-size:14px;color:#7a736b;margin-top:2px;">Big expressive type, warm tint, icon rail. Featured hero · floating player.</div>
+      </div>
+      <div style="width:1180px;height:760px;background:#19120e;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;display:flex;flex-direction:column;position:relative;">
+        <div style="height:40px;flex:none;display:flex;align-items:center;padding:0 16px;gap:8px;background:transparent;position:absolute;top:0;left:0;right:0;z-index:5;">
+          <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+        </div>
+        <div style="flex:1;display:flex;min-height:0;">
+          <!-- icon rail -->
+          <div style="width:76px;flex:none;background:rgba(0,0,0,.25);border-right:1px solid rgba(255,255,255,.05);padding-top:52px;display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#FFB35C,#FF6B5C);margin-bottom:14px;"></div>
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,138,76,.16);color:#FF9A5C;display:flex;align-items:center;justify-content:center;">{{ icHome }}</div>
+            <div style="width:44px;height:44px;border-radius:12px;color:#9a9189;display:flex;align-items:center;justify-content:center;">{{ icSearch }}</div>
+            <div style="width:44px;height:44px;border-radius:12px;color:#9a9189;display:flex;align-items:center;justify-content:center;">{{ icExplore }}</div>
+            <div style="width:44px;height:44px;border-radius:12px;color:#9a9189;display:flex;align-items:center;justify-content:center;">{{ icLibrary }}</div>
+            <div style="flex:1;"></div>
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6C8CFF,#9B6CFF);margin-bottom:18px;"></div>
+          </div>
+          <!-- main -->
+          <div style="flex:1;min-width:0;overflow:hidden;background:radial-gradient(120% 80% at 80% -10%,rgba(255,120,80,.28),transparent 60%),#19120e;padding:60px 40px 30px;">
+            <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#FF9A5C;margin-bottom:8px;">Tuesday · 9:24 PM</div>
+            <h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:46px;line-height:1;color:#f7f0e8;letter-spacing:-.025em;margin-bottom:26px;">Tonight, slow<br>and warm.</h2>
+            <!-- hero -->
+            <div style="display:flex;gap:22px;margin-bottom:30px;">
+              <div style="flex:1;border-radius:16px;overflow:hidden;height:208px;background:linear-gradient(120deg,#FF6B5C,#FFB35C 60%,#FFD27A);position:relative;padding:24px;display:flex;flex-direction:column;justify-content:flex-end;">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(40,18,8,.65);">Featured mix</div>
+                <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:28px;color:#2a1408;margin-top:4px;">Amber Hour</div>
+                <div style="font-size:14px;color:rgba(40,18,8,.7);margin-top:4px;">28 songs · 1h 46m of golden-glow indie</div>
+                <div style="position:absolute;top:22px;right:22px;width:50px;height:50px;border-radius:50%;background:#2a1408;display:flex;align-items:center;justify-content:center;color:#FFD27A;">{{ icPlay }}</div>
+              </div>
+              <div style="width:300px;flex:none;display:flex;flex-direction:column;gap:14px;">
+                <sc-for list="{{ heroSide }}" as="h" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.05);border-radius:12px;padding:10px;">
+                    <div style="width:52px;height:52px;border-radius:8px;flex:none;background:{{ h.art }};"></div>
+                    <div style="min-width:0;">
+                      <div style="font-size:14px;font-weight:700;color:#ece6de;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ h.title }}</div>
+                      <div style="font-size:12px;color:#9a9189;">{{ h.sub }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;">
+              <h3 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:21px;color:#f0ebe3;">Jump back in</h3>
+            </div>
+            <div style="display:flex;gap:20px;">
+              <sc-for list="{{ madeForYou }}" as="m" hint-placeholder-count="5">
+                <div style="width:148px;flex:none;">
+                  <div style="width:148px;height:148px;border-radius:14px;background:{{ m.art }};box-shadow:0 12px 26px rgba(0,0,0,.3);margin-bottom:11px;"></div>
+                  <div style="font-size:14px;font-weight:700;color:#ece6de;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+                  <div style="font-size:12px;color:#8a8178;margin-top:2px;">{{ m.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <!-- floating player -->
+        <div style="position:absolute;left:96px;right:32px;bottom:22px;height:72px;background:rgba(28,20,16,.82);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:16px;display:flex;align-items:center;padding:0 18px;gap:16px;box-shadow:0 18px 40px rgba(0,0,0,.4);">
+          <div style="display:flex;align-items:center;gap:13px;width:260px;">
+            <div style="width:48px;height:48px;border-radius:9px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);flex:none;"></div>
+            <div style="min-width:0;"><div style="font-size:14px;font-weight:700;color:#f0ebe3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Midnight Coast</div><div style="font-size:12px;color:#8a8178;">Halsey Lane</div></div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;">
+            <div style="display:flex;align-items:center;gap:20px;color:#cfc8bf;">{{ icPrev }}<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FFB35C,#FF6B5C);display:flex;align-items:center;justify-content:center;color:#2a1408;">{{ icPause }}</div>{{ icNext }}</div>
+            <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:440px;"><span style="font-size:11px;color:#8a8178;">1:42</span><div style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.14);position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:#FF8A4C;border-radius:2px;"></div></div><span style="font-size:11px;color:#8a8178;">3:58</span></div>
+          </div>
+          <div style="width:140px;display:flex;align-items:center;justify-content:flex-end;gap:16px;color:#9a9189;">{{ icHeart }} {{ icQueue }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- C : STUDIO (light, dense, docked NP panel) ---- -->
+    <div style="flex:none;width:1180px;">
+      <div style="margin-bottom:14px;">
+        <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;color:#22201d;">C · Studio</div>
+        <div style="font-size:14px;color:#7a736b;margin-top:2px;">Light theme, power-user density. List-forward · docked now-playing panel.</div>
+      </div>
+      <div style="width:1180px;height:760px;background:#faf7f2;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column;position:relative;">
+        <div style="height:40px;flex:none;display:flex;align-items:center;padding:0 16px;background:#f1ece3;border-bottom:1px solid rgba(0,0,0,.06);gap:8px;">
+          <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+          <div style="flex:1;display:flex;justify-content:center;"><div style="width:340px;height:26px;border-radius:8px;background:#fff;border:1px solid rgba(0,0,0,.07);display:flex;align-items:center;padding:0 10px;gap:8px;color:#a59d94;font-size:12px;">{{ icSearch }} Search songs, artists, albums…</div></div>
+          <div style="width:60px;"></div>
+        </div>
+        <div style="flex:1;display:flex;min-height:0;">
+          <!-- nav -->
+          <div style="width:200px;flex:none;background:#f1ece3;border-right:1px solid rgba(0,0,0,.06);padding:16px 12px;display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:8px;background:#fff;color:#c2562a;font-weight:600;font-size:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);">{{ icHomeD }} Home</div>
+            <div style="display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:8px;color:#6b655e;font-weight:500;font-size:14px;">{{ icExploreD }} Explore</div>
+            <div style="display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:8px;color:#6b655e;font-weight:500;font-size:14px;">{{ icLibraryD }} Library</div>
+            <div style="display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:8px;color:#6b655e;font-weight:500;font-size:14px;">{{ icDownD }} Downloads</div>
+            <div style="height:1px;background:rgba(0,0,0,.07);margin:12px 6px;"></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a59d94;padding:2px 11px 8px;">Playlists</div>
+            <sc-for list="{{ playlists }}" as="p" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:10px;padding:6px 11px;border-radius:7px;">
+                <div style="width:30px;height:30px;border-radius:6px;flex:none;background:{{ p.art }};"></div>
+                <div style="font-size:13px;font-weight:600;color:#3a352f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.title }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <!-- center list -->
+          <div style="flex:1;min-width:0;overflow:hidden;padding:22px 24px;">
+            <h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:24px;color:#2a2620;letter-spacing:-.01em;margin-bottom:4px;">Recently played</h2>
+            <div style="font-size:13px;color:#8a8178;margin-bottom:18px;">Picking up where you left off</div>
+            <div style="display:grid;grid-template-columns:28px 1fr 1fr 64px;gap:14px;padding:0 12px 8px;border-bottom:1px solid rgba(0,0,0,.07);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#a59d94;">
+              <div>#</div><div>Title</div><div>Album</div><div style="text-align:right;">{{ icClock }}</div>
+            </div>
+            <sc-for list="{{ songs }}" as="s" hint-placeholder-count="9">
+              <div style="display:grid;grid-template-columns:28px 1fr 1fr 64px;gap:14px;align-items:center;padding:7px 12px;border-radius:7px;">
+                <div style="font-size:13px;color:#a59d94;">{{ s.n }}</div>
+                <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+                  <div style="width:38px;height:38px;border-radius:6px;flex:none;background:{{ s.art }};"></div>
+                  <div style="min-width:0;"><div style="font-size:14px;font-weight:600;color:#2a2620;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12px;color:#8a8178;">{{ s.artist }}</div></div>
+                </div>
+                <div style="font-size:13px;color:#6b655e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.album }}</div>
+                <div style="font-size:13px;color:#8a8178;text-align:right;">{{ s.dur }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <!-- docked NP panel -->
+          <div style="width:284px;flex:none;background:#f1ece3;border-left:1px solid rgba(0,0,0,.06);padding:22px 20px;display:flex;flex-direction:column;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a59d94;margin-bottom:14px;">Now playing</div>
+            <div style="width:100%;aspect-ratio:1;border-radius:14px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);box-shadow:0 14px 30px rgba(0,0,0,.18);margin-bottom:18px;"></div>
+            <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:20px;color:#2a2620;">Midnight Coast</div>
+            <div style="font-size:14px;color:#8a8178;margin-top:2px;">Halsey Lane · Neon Tide</div>
+            <div style="margin:18px 0 6px;height:4px;border-radius:2px;background:rgba(0,0,0,.1);position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:linear-gradient(90deg,#FFB35C,#FF6B5C);border-radius:2px;"></div><div style="position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:#c2562a;"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#a59d94;">1:42<span>3:58</span></div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:22px;margin-top:18px;color:#6b655e;">{{ icShuffleD }}{{ icPrevD }}<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#FFB35C,#FF6B5C);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 8px 18px rgba(255,107,92,.35);">{{ icPauseD }}</div>{{ icNextD }}{{ icRepeatD }}</div>
+            <div style="flex:1;"></div>
+            <div style="background:#fff;border-radius:12px;padding:14px;border:1px solid rgba(0,0,0,.05);">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#c2562a;margin-bottom:8px;">Lyrics</div>
+              <div style="font-size:13px;color:#c9c2b8;line-height:1.7;">City lights bleed in the rain<br><span style="color:#2a2620;font-weight:600;">Driving down the midnight coast</span><br>Headlights chasing yesterday</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ROW 2 : NOW PLAYING ============ -->
+  <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#8a8178;margin-bottom:20px;">Now Playing — full screen</div>
+  <div style="display:flex;gap:48px;align-items:flex-start;">
+
+    <!-- NP-A : art-driven ambient -->
+    <div style="flex:none;width:1180px;">
+      <div style="margin-bottom:14px;"><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;color:#22201d;">A · Ambient</div><div style="font-size:14px;color:#7a736b;margin-top:2px;">Art-extracted color washes the whole screen.</div></div>
+      <div style="width:1180px;height:680px;border-radius:12px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.28);position:relative;background:linear-gradient(165deg,#7a2f3a 0%,#3a1a22 55%,#140d0f 100%);">
+        <div style="position:absolute;inset:0;background:radial-gradient(80% 60% at 50% 22%,rgba(255,140,107,.4),transparent 70%);"></div>
+        <div style="position:absolute;top:0;left:0;right:0;height:40px;display:flex;align-items:center;padding:0 16px;gap:8px;z-index:5;"><div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div><div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div><div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div></div>
+        <div style="position:absolute;top:18px;right:20px;color:rgba(255,255,255,.6);display:flex;gap:18px;z-index:5;">{{ icQueue }} {{ icDown }}</div>
+        <div style="position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
+          <div style="width:340px;height:340px;border-radius:18px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);box-shadow:0 30px 70px rgba(0,0,0,.5);margin-bottom:34px;"></div>
+          <div style="text-align:center;margin-bottom:8px;"><div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:34px;color:#fff;letter-spacing:-.01em;">Midnight Coast</div><div style="font-size:17px;color:rgba(255,255,255,.72);margin-top:4px;">Halsey Lane</div></div>
+          <div style="width:520px;margin-top:26px;"><div style="height:5px;border-radius:3px;background:rgba(255,255,255,.2);position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:#fff;border-radius:3px;"></div><div style="position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;background:#fff;"></div></div><div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.6);margin-top:8px;">1:42<span>3:58</span></div></div>
+          <div style="display:flex;align-items:center;gap:34px;margin-top:24px;color:#fff;">{{ icShuffleLg }}{{ icPrevLg }}<div style="width:64px;height:64px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#3a1a22;">{{ icPauseLg }}</div>{{ icNextLg }}{{ icRepeatLg }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NP-B : split lyrics -->
+    <div style="flex:none;width:1180px;">
+      <div style="margin-bottom:14px;"><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;color:#22201d;">B · Lyrics split</div><div style="font-size:14px;color:#7a736b;margin-top:2px;">Art &amp; controls left, big synced lyrics right.</div></div>
+      <div style="width:1180px;height:680px;border-radius:12px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.28);display:flex;background:#140f0d;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:40px;display:flex;align-items:center;padding:0 16px;gap:8px;z-index:5;"><div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div><div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div><div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div></div>
+        <!-- left -->
+        <div style="width:480px;flex:none;background:linear-gradient(180deg,#2a1518,#140f0d);padding:70px 48px 40px;display:flex;flex-direction:column;justify-content:center;">
+          <div style="width:280px;height:280px;border-radius:16px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);box-shadow:0 24px 56px rgba(0,0,0,.5);margin-bottom:30px;"></div>
+          <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:30px;color:#fff;">Midnight Coast</div>
+          <div style="font-size:16px;color:rgba(255,255,255,.66);margin-top:5px;">Halsey Lane · Neon Tide</div>
+          <div style="margin:28px 0 6px;height:4px;border-radius:2px;background:rgba(255,255,255,.16);position:relative;width:100%;"><div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:linear-gradient(90deg,#FFB35C,#FF6B5C);border-radius:2px;"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.5);">1:42<span>3:58</span></div>
+          <div style="display:flex;align-items:center;gap:26px;margin-top:22px;color:#fff;">{{ icShuffle }}{{ icPrevLg }}<div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#FFB35C,#FF6B5C);display:flex;align-items:center;justify-content:center;color:#2a1408;">{{ icPauseLg }}</div>{{ icNextLg }}{{ icRepeat }}</div>
+        </div>
+        <!-- right lyrics -->
+        <div style="flex:1;min-width:0;padding:80px 56px;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:18px;">
+          <sc-for list="{{ lyrics }}" as="l" hint-placeholder-count="7">
+            <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:{{ l.size }};line-height:1.2;color:{{ l.color }};letter-spacing:-.01em;">{{ l.text }}</div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- NP-C : visualizer -->
+    <div style="flex:none;width:1180px;">
+      <div style="margin-bottom:14px;"><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;color:#22201d;">C · Visualizer</div><div style="font-size:14px;color:#7a736b;margin-top:2px;">Animated bars + ambient gradient, immersive.</div></div>
+      <div style="width:1180px;height:680px;border-radius:12px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.28);position:relative;background:radial-gradient(100% 100% at 50% 120%,#FF6B5C 0%,#7a2535 40%,#0e0b0d 100%);">
+        <div style="position:absolute;top:0;left:0;right:0;height:40px;display:flex;align-items:center;padding:0 16px;gap:8px;z-index:5;"><div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div><div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div><div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div></div>
+        <!-- viz bars -->
+        <div style="position:absolute;bottom:150px;left:0;right:0;display:flex;align-items:flex-end;justify-content:center;gap:7px;height:160px;opacity:.85;">{{ vizBars }}</div>
+        <div style="position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:30px;">
+          <div style="width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,#FF6B8B,#FFA86B);box-shadow:0 0 80px rgba(255,120,90,.6),0 20px 50px rgba(0,0,0,.5);margin-bottom:30px;"></div>
+          <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:32px;color:#fff;">Midnight Coast</div>
+          <div style="font-size:16px;color:rgba(255,255,255,.7);margin-top:4px;">Halsey Lane</div>
+        </div>
+        <div style="position:absolute;bottom:34px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:16px;">
+          <div style="display:flex;align-items:center;gap:30px;color:#fff;">{{ icShuffleLg }}{{ icPrevLg }}<div style="width:58px;height:58px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#7a2535;">{{ icPauseLg }}</div>{{ icNextLg }}{{ icRepeatLg }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  ic(path, size, sw){
+    return React.createElement('svg',{width:size||20,height:size||20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:sw||2,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none'}},
+      Array.isArray(path)?path.map((d,i)=>React.createElement('path',{key:i,d})):React.createElement('path',{d:path}));
+  }
+  filled(children,size){
+    return React.createElement('svg',{width:size||20,height:size||20,viewBox:'0 0 24 24',fill:'currentColor',style:{flex:'none'}},children);
+  }
+  renderVals(){
+    const g=(a)=>`linear-gradient(135deg,${a})`;
+    const arts=[g('#FF8A5B,#FFC15B'),g('#6C8CFF,#9B6CFF'),g('#2BC4A0,#7BE0C0'),g('#FF6B8B,#FFA86B'),g('#3A3A5C,#7A6CFF'),g('#E8A87C,#C38D5F'),g('#5BC0FF,#5B8AFF'),g('#F26B8A,#7A3A5C'),g('#8AC15B,#3A8A5C')];
+    const A=arts;
+    const playlists=[
+      {title:'Liked Songs',sub:'842 songs',art:g('#7A6CFF,#FF6B8B')},
+      {title:'Late Night Drive',sub:'Playlist',art:A[0]},
+      {title:'Focus Flow',sub:'Playlist',art:A[2]},
+      {title:'Golden Hour',sub:'Playlist',art:A[5]},
+      {title:'Rainy Days',sub:'Playlist',art:A[4]},
+    ];
+    const quickRow=[
+      {title:'Liked Songs',art:g('#7A6CFF,#FF6B8B')},{title:'Daily Mix 1',art:A[0]},{title:'Discover Weekly',art:A[2]},
+      {title:'Chill Lofi',art:A[5]},{title:'Throwback',art:A[7]},{title:'New Releases',art:A[8]},
+    ];
+    const madeForYou=[
+      {title:'Daily Mix 1',sub:'Halsey Lane, Norah Vale +12',art:A[0]},
+      {title:'Discover Weekly',sub:'Your weekly mixtape',art:A[2]},
+      {title:'Golden Hour',sub:'Warm indie & soul',art:A[5]},
+      {title:'Deep Focus',sub:'Ambient instrumental',art:A[4]},
+      {title:'Throwback',sub:'2000s favourites',art:A[7]},
+    ];
+    const heroSide=[
+      {title:'Neon Tide',sub:'Halsey Lane',art:A[3]},
+      {title:'Slow Burn',sub:'Norah Vale',art:A[5]},
+      {title:'Coastline',sub:'The Idle Hours',art:A[8]},
+    ];
+    const songNames=[
+      ['Midnight Coast','Halsey Lane','Neon Tide','3:58'],
+      ['Paper Planes','Norah Vale','Quiet Light','4:12'],
+      ['Golden','The Idle Hours','Coastline','3:21'],
+      ['Velvet Morning','June Carver','Slow Burn','3:45'],
+      ['Hollow','Atlas Bay','Driftwood','4:02'],
+      ['Cinnamon','Norah Vale','Quiet Light','3:33'],
+      ['Lantern','Halsey Lane','Neon Tide','3:50'],
+      ['Riverbed','The Idle Hours','Coastline','4:28'],
+      ['Embers','June Carver','Slow Burn','3:17'],
+    ];
+    const songs=songNames.map((s,i)=>({n:i+1,title:s[0],artist:s[1],album:s[2],dur:s[3],art:A[i%A.length]}));
+
+    const lyrics=[
+      {text:'City lights bleed in the rain',size:'30px',color:'rgba(255,255,255,.32)'},
+      {text:'Engine humming low and slow',size:'30px',color:'rgba(255,255,255,.32)'},
+      {text:'Driving down the midnight coast',size:'40px',color:'#FFB98A'},
+      {text:'Headlights chasing yesterday',size:'30px',color:'rgba(255,255,255,.32)'},
+      {text:'And I can\u2019t let go',size:'30px',color:'rgba(255,255,255,.32)'},
+      {text:'Of the way you said my name',size:'30px',color:'rgba(255,255,255,.2)'},
+      {text:'Under all that golden glow',size:'30px',color:'rgba(255,255,255,.2)'},
+    ];
+
+    // viz bars
+    const heights=[40,68,52,90,120,72,48,96,64,110,80,54,88,130,70,46,100,60,84,116,58,92,66,44,108,76,50,98,62,86];
+    const vizBars=React.createElement(React.Fragment,null,heights.map((h,i)=>React.createElement('div',{key:i,style:{width:'8px',height:h+'px',borderRadius:'4px',background:'linear-gradient(180deg,#FFD27A,#FF6B5C)'}})));
+
+    // icons
+    const home=this.ic([ 'M3 11.5 12 4l9 7.5','M5 10v10h5v-6h4v6h5V10' ],20);
+    const homeFill=this.filled(React.createElement('path',{d:'M12 3 2 11.2V21h7v-6h6v6h7v-9.8L12 3z'}),20);
+    const search=this.ic(['M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z','m21 21-4.3-4.3'],20);
+    const explore=this.ic(['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z','m15.5 8.5-2 5-5 2 2-5 5-2z'],20);
+    const library=this.ic(['M4 19V5','M9 19V5','M14 5l5 14','M14 5l5 0'],20);
+    const down=this.ic(['M12 3v12','m7 11 5 5 5-5','M5 21h14'],20);
+    const clock=this.ic(['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z','M12 7v5l3 2'],16);
+    const heart=this.filled(React.createElement('path',{d:'M12 21s-7-4.5-9.5-9C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 6.5C19 16.5 12 21 12 21z'}),18);
+    const shuffle=this.ic(['M16 3h5v5','M21 3l-7 7','M3 21l6-6','M3 3l7 7','M16 21h5v-5','M14 14l7 7'],18);
+    const repeat=this.ic(['M17 2l4 4-4 4','M3 11V9a4 4 0 0 1 4-4h14','M7 22l-4-4 4-4','M21 13v2a4 4 0 0 1-4 4H3'],18);
+    const prev=this.filled([React.createElement('path',{key:'a',d:'M6 5v14'}),React.createElement('path',{key:'b',d:'M20 5 9 12l11 7V5z'})],20);
+    const next=this.filled([React.createElement('path',{key:'a',d:'M18 5v14'}),React.createElement('path',{key:'b',d:'M4 5l11 7L4 19V5z'})],20);
+    const play=this.filled(React.createElement('path',{d:'M7 4v16l13-8z'}),22);
+    const playSm=this.filled(React.createElement('path',{d:'M8 5v14l11-7z'}),18);
+    const pause=this.filled([React.createElement('rect',{key:'a',x:6,y:5,width:4,height:14,rx:1}),React.createElement('rect',{key:'b',x:14,y:5,width:4,height:14,rx:1})],18);
+    const queue=this.ic(['M4 6h12','M4 12h12','M4 18h8','M17 13v6','M17 13l4 2-4 2'],20);
+    const volume=this.ic(['M11 5 6 9H3v6h3l5 4V5z','M15.5 8.5a5 5 0 0 1 0 7','M18.5 5.5a9 9 0 0 1 0 13'],20);
+
+    const sz=(el,size)=>React.cloneElement(el,{width:size,height:size});
+
+    return {
+      playlists, quickRow, madeForYou, heroSide, songs, lyrics, vizBars,
+      icHome:home, icHomeD:home, icSearch:search, icExplore:explore, icExploreD:explore,
+      icLibrary:library, icLibraryD:library, icDown:down, icDownD:down, icClock:clock,
+      icHeart:heart, icShuffle:shuffle, icShuffleD:shuffle, icRepeat:repeat, icRepeatD:repeat,
+      icPrev:prev, icPrevD:prev, icNext:next, icNextD:next, icPlay:play, icPlaySm:playSm,
+      icPause:pause, icPauseD:pause, icQueue:queue, icVolume:volume,
+      icShuffleLg:sz(shuffle,26), icRepeatLg:sz(repeat,26), icPrevLg:sz(prev,30), icNextLg:sz(next,30), icPauseLg:sz(pause,26),
+    };
+  }
+}
+</script>
+</body>
+</html>

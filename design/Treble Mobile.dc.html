@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesque:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Hanken Grotesque',sans-serif;-webkit-font-smoothing:antialiased;background:#e7e5df;}
+    .ph::-webkit-scrollbar{display:none;}
+    .ph{scrollbar-width:none;}
+    .tap{transition:transform .12s ease,filter .12s ease;}
+    .tap:active{transform:scale(.96);}
+    @keyframes eqb{0%,100%{height:30%}50%{height:100%}}
+  </style>
+</helmet>
+
+<div style="min-height:100vh;width:100%;background:#e7e5df;display:flex;flex-direction:column;align-items:center;padding:40px 24px 60px;">
+
+  <div style="width:100%;max-width:560px;margin-bottom:26px;">
+    <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#b06a3a;margin-bottom:8px;">Treble · Mobile</div>
+    <h1 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:26px;line-height:1.06;color:#22201d;letter-spacing:-.02em;">Interactive phone prototype</h1>
+    <p style="font-size:14px;line-height:1.5;color:#6b655e;margin-top:8px;">Tap the bottom tabs &amp; mini-player to navigate. Switch platform to see the same screens with Android vs. iOS chrome.</p>
+  </div>
+
+  <!-- controls -->
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin-bottom:22px;">
+    <div style="display:flex;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:11px;padding:3px;">
+      <div onClick="{{ setAndroid }}" class="tap" style="padding:7px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:{{ andBg }};color:{{ andColor }};">Android</div>
+      <div onClick="{{ setIOS }}" class="tap" style="padding:7px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:{{ iosBg }};color:{{ iosColor }};">iOS</div>
+    </div>
+    <div onClick="{{ toggleTheme }}" class="tap" style="display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:11px;background:#fff;border:1px solid rgba(0,0,0,.08);font-size:13px;font-weight:600;cursor:pointer;color:#3a352f;">{{ icTheme }} {{ themeLabel }}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">
+      <sc-for list="{{ jumper }}" as="j" hint-placeholder-count="10">
+        <div onClick="{{ j.go }}" class="tap" style="padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer;background:{{ j.bg }};color:{{ j.color }};border:1px solid {{ j.border }};">{{ j.label }}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ===================== PHONE (in hardware bezel) ===================== -->
+  <div style="position:relative;padding:13px;border-radius:{{ bezelRadius }};background:linear-gradient(150deg,#3a3a40 0%,#17171a 42%,#0a0a0c 100%);box-shadow:0 50px 100px rgba(0,0,0,.42),0 8px 24px rgba(0,0,0,.3),inset 0 0 0 2px rgba(255,255,255,.05),inset 0 1px 2px rgba(255,255,255,.12);">
+    <!-- side buttons -->
+    <div style="position:absolute;left:-3px;top:120px;width:3px;height:34px;border-radius:3px 0 0 3px;background:linear-gradient(90deg,#0a0a0c,#222);"></div>
+    <div style="position:absolute;left:-3px;top:166px;width:3px;height:54px;border-radius:3px 0 0 3px;background:linear-gradient(90deg,#0a0a0c,#222);"></div>
+    <div style="position:absolute;left:-3px;top:230px;width:3px;height:54px;border-radius:3px 0 0 3px;background:linear-gradient(90deg,#0a0a0c,#222);"></div>
+    <div style="position:absolute;right:-3px;top:188px;width:3px;height:78px;border-radius:0 3px 3px 0;background:linear-gradient(270deg,#0a0a0c,#222);"></div>
+  <div ref="{{ rootRef }}" style="--bg:#faf7f2;--panel:#f1ece3;--surface:#ffffff;--surface-2:#f4efe7;--border:rgba(0,0,0,.07);--text:#2a2620;--text-2:#6b655e;--text-3:#a59d94;--accent:#E2622E;--accent-soft:rgba(226,98,46,.12);--accent-grad:linear-gradient(135deg,#FFB35C,#FF6B5C);--shadow:rgba(0,0,0,.16);width:390px;height:844px;border-radius:{{ phoneRadius }};overflow:hidden;position:relative;background:var(--bg);box-shadow:0 30px 70px rgba(0,0,0,.28);border:1px solid rgba(0,0,0,.06);color:var(--text);">
+
+    <!-- STATUS BAR -->
+    <div style="position:absolute;top:0;left:0;right:0;height:{{ statusH }};z-index:30;display:flex;align-items:center;justify-content:space-between;padding:0 26px;pointer-events:none;color:{{ statusColor }};">
+      <span style="font-size:14px;font-weight:700;">9:41</span>
+      <sc-if value="{{ isIOS }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:11px;transform:translateX(-50%);width:108px;height:30px;border-radius:16px;background:#0c0a09;"></div></sc-if>
+      {{ statusCluster }}
+    </div>
+
+    <!-- ============ BASE CONTENT (browse screens) ============ -->
+    <div class="ph" style="position:absolute;inset:0;overflow-y:auto;padding-top:var(--status-h);padding-bottom:130px;">
+
+      <!-- HOME -->
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:8px 20px 0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+            <div><div style="font-size:13px;font-weight:600;color:var(--accent);">{{ greeting }}</div><h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:26px;letter-spacing:-.01em;">Hey, Kaz</h2></div>
+            <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#7A6CFF,#FF6B8B);"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:22px;">
+            <div class="tap" style="padding:7px 16px;border-radius:20px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;">All</div>
+            <div class="tap" style="padding:7px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;">Music</div>
+            <div onClick="{{ goExplore }}" class="tap" style="padding:7px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;">Explore</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:26px;">
+            <sc-for list="{{ quickPicks }}" as="q" hint-placeholder-count="6">
+              <div onClick="{{ goDetail }}" class="tap" style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;height:58px;cursor:pointer;">
+                <div style="width:58px;height:58px;flex:none;background:{{ q.art }};"></div>
+                <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px;">{{ q.title }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <h3 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:19px;margin-bottom:14px;">Made for you</h3>
+          <div style="display:flex;gap:14px;overflow-x:auto;margin-bottom:26px;" class="ph">
+            <sc-for list="{{ carousel }}" as="m" hint-placeholder-count="4">
+              <div onClick="{{ goDetail }}" style="width:138px;flex:none;cursor:pointer;">
+                <div style="width:138px;height:138px;border-radius:12px;background:{{ m.art }};box-shadow:0 8px 18px var(--shadow);margin-bottom:9px;"></div>
+                <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+                <div style="font-size:12px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <h3 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:19px;margin-bottom:8px;">Recently played</h3>
+          <sc-for list="{{ recent }}" as="s" hint-placeholder-count="4">
+            <div onClick="{{ s.openNP }}" class="tap" style="display:flex;align-items:center;gap:12px;padding:7px 0;cursor:pointer;">
+              <div style="width:46px;height:46px;border-radius:8px;flex:none;background:{{ s.art }};"></div>
+              <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ s.artist }}</div></div>
+              <div style="color:var(--text-3);">{{ icMore }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- SEARCH -->
+      <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 20px 0;">
+          <h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:26px;margin-bottom:16px;">Search</h2>
+          <div style="display:flex;align-items:center;gap:10px;height:48px;border-radius:12px;background:var(--surface);border:1px solid var(--border);padding:0 14px;color:var(--text-3);font-size:15px;margin-bottom:24px;">{{ icSearch }} What do you want to play?</div>
+          <h3 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:17px;margin-bottom:12px;">Recent searches</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;">
+            <sc-for list="{{ recentSearch }}" as="r" hint-placeholder-count="4">
+              <div class="tap" style="display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:22px;background:var(--surface);border:1px solid var(--border);cursor:pointer;"><div style="width:24px;height:24px;border-radius:50%;background:{{ r.art }};"></div><span style="font-size:13px;font-weight:600;">{{ r.label }}</span></div>
+            </sc-for>
+          </div>
+          <h3 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:18px;margin-bottom:14px;">Browse all</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <sc-for list="{{ genres }}" as="g" hint-placeholder-count="8">
+              <div class="tap" style="height:96px;border-radius:13px;background:{{ g.art }};padding:14px;position:relative;overflow:hidden;cursor:pointer;"><div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:17px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.2);">{{ g.label }}</div><div style="position:absolute;right:-8px;bottom:-8px;width:58px;height:58px;border-radius:9px;background:rgba(255,255,255,.22);transform:rotate(25deg);"></div></div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- EXPLORE -->
+      <sc-if value="{{ isExplore }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 0 0;">
+          <div style="padding:6px 20px 18px;background:radial-gradient(120% 80% at 90% -10%,var(--accent-soft),transparent 60%);">
+            <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);">Explore</div>
+            <h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:26px;letter-spacing:-.02em;margin-top:4px;">Fresh sounds</h2>
+          </div>
+          <div style="padding:6px 20px 0;">
+            <h3 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:18px;margin-bottom:12px;">New releases</h3>
+            <div style="display:flex;gap:14px;overflow-x:auto;margin-bottom:26px;" class="ph">
+              <sc-for list="{{ carousel }}" as="m" hint-placeholder-count="4">
+                <div onClick="{{ goDetail }}" style="width:130px;flex:none;cursor:pointer;"><div style="width:130px;height:130px;border-radius:12px;background:{{ m.art }};box-shadow:0 8px 18px var(--shadow);margin-bottom:9px;"></div><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ m.sub }}</div></div>
+              </sc-for>
+            </div>
+            <h3 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:18px;margin-bottom:12px;">Charts</h3>
+            <sc-for list="{{ charts }}" as="c" hint-placeholder-count="4">
+              <div onClick="{{ goDetail }}" class="tap" style="display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:10px;cursor:pointer;"><div style="width:50px;height:50px;border-radius:9px;flex:none;background:{{ c.art }};"></div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;">{{ c.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ c.sub }}</div></div><div style="color:var(--text-3);">{{ icChevron }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- LIBRARY -->
+      <sc-if value="{{ isLibrary }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 20px 0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:26px;">Your Library</h2><div class="tap" style="color:var(--text);cursor:pointer;">{{ icPlus }}</div></div>
+          <div style="display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;" class="ph">
+            <sc-for list="{{ libTabs }}" as="t" hint-placeholder-count="4"><div onClick="{{ t.set }}" class="tap" style="padding:6px 14px;border-radius:18px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;background:{{ t.bg }};color:{{ t.color }};border:1px solid {{ t.border }};">{{ t.label }}</div></sc-for>
+          </div>
+          <sc-for list="{{ libItems }}" as="p" hint-placeholder-count="6">
+            <div onClick="{{ goDetail }}" class="tap" style="display:flex;align-items:center;gap:13px;padding:8px 0;cursor:pointer;"><div style="width:54px;height:54px;border-radius:{{ p.radius }};flex:none;background:{{ p.art }};"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.title }}</div><div style="font-size:12.5px;color:var(--text-2);">{{ p.sub }}</div></div><div style="color:var(--text-3);">{{ icMore }}</div></div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- DETAIL -->
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="padding:6px 20px 22px;background:linear-gradient(180deg,var(--accent-soft),transparent);display:flex;flex-direction:column;align-items:center;text-align:center;">
+            <div style="width:172px;height:172px;border-radius:14px;background:linear-gradient(135deg,#FF8A5B,#FFC15B);box-shadow:0 18px 40px var(--shadow);margin-bottom:16px;"></div>
+            <h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:28px;letter-spacing:-.02em;line-height:1.05;">Late Night Drive</h2>
+            <div style="font-size:13px;color:var(--text-2);margin-top:8px;">The slow-burn nocturne mix · 24 songs, 1h 38m</div>
+            <div style="display:flex;align-items:center;gap:16px;margin-top:18px;"><div style="color:var(--accent);">{{ icHeart }}</div><div style="color:var(--text-2);">{{ icDownload }}</div><div onClick="{{ openNP }}" class="tap" style="width:54px;height:54px;border-radius:50%;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 8px 20px rgba(255,107,92,.4);cursor:pointer;">{{ icPlay }}</div><div style="color:var(--text-2);">{{ icShuffle }}</div><div style="color:var(--text-2);">{{ icMore }}</div></div>
+          </div>
+          <div style="padding:4px 20px 0;">
+            <sc-for list="{{ tracks }}" as="s" hint-placeholder-count="7">
+              <div onClick="{{ s.openNP }}" class="tap" style="display:flex;align-items:center;gap:12px;padding:8px 0;cursor:pointer;"><div style="width:46px;height:46px;border-radius:8px;flex:none;background:{{ s.art }};"></div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ s.artist }}</div></div><div style="color:var(--text-3);">{{ icMore }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- DOWNLOADS -->
+      <sc-if value="{{ isDownloads }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 20px 0;">
+          <h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:26px;margin-bottom:4px;">Downloads</h2>
+          <div style="font-size:13px;color:var(--text-2);margin-bottom:18px;">Available offline on this device</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:15px 16px;margin-bottom:22px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;"><span style="font-weight:600;">Storage used</span><span style="color:var(--text-2);">2.4 GB / 8 GB</span></div>
+            <div style="height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-bottom:14px;"><div style="height:100%;width:30%;background:var(--accent-grad);border-radius:4px;"></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;font-weight:600;">Auto-download liked songs</span><div style="width:42px;height:24px;border-radius:13px;background:var(--accent);position:relative;"><div style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:#fff;"></div></div></div>
+          </div>
+          <sc-for list="{{ downloads }}" as="s" hint-placeholder-count="6">
+            <div onClick="{{ s.openNP }}" class="tap" style="display:flex;align-items:center;gap:12px;padding:8px 0;cursor:pointer;"><div style="width:46px;height:46px;border-radius:8px;flex:none;background:{{ s.art }};"></div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ s.artist }}</div></div><div style="color:#2BAE66;">{{ icDownloaded }}</div></div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- SETTINGS -->
+      <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 20px 0;">
+          <h2 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:26px;margin-bottom:20px;">Settings</h2>
+          <div style="display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:13px 15px;margin-bottom:22px;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#7A6CFF,#FF6B8B);"></div><div style="flex:1;"><div style="font-size:15px;font-weight:700;">Kaz</div><div style="font-size:12.5px;color:var(--text-2);">YouTube Music · @kaz</div></div><div style="color:var(--text-3);">{{ icChevron }}</div></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;">Appearance</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden;margin-bottom:22px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);"><span style="font-size:14px;font-weight:600;">Theme</span><div style="display:flex;background:var(--surface-2);border-radius:8px;padding:3px;"><div onClick="{{ setLight }}" class="tap" style="padding:5px 13px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:{{ lightBg }};color:{{ lightColor }};">Light</div><div onClick="{{ setDark }}" class="tap" style="padding:5px 13px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:{{ darkBg }};color:{{ darkColor }};">Dark</div></div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;"><span style="font-size:14px;font-weight:600;">Accent color</span><div style="display:flex;gap:9px;"><sc-for list="{{ accentSwatches }}" as="a" hint-placeholder-count="4"><div onClick="{{ a.set }}" class="tap" style="width:26px;height:26px;border-radius:50%;background:{{ a.color }};cursor:pointer;border:3px solid {{ a.ring }};"></div></sc-for></div></div>
+          </div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;">Player &amp; audio</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden;margin-bottom:22px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);"><span style="font-size:14px;font-weight:600;">Audio quality</span><div class="tap" style="display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:8px;background:var(--surface-2);font-size:12.5px;font-weight:600;cursor:pointer;">Auto {{ icChevron }}</div></div>
+            <sc-for list="{{ playerToggles }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid {{ r.border }};"><div><div style="font-size:14px;font-weight:600;">{{ r.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ r.sub }}</div></div><div onClick="{{ r.toggle }}" class="tap" style="width:42px;height:24px;border-radius:13px;background:{{ r.track }};position:relative;cursor:pointer;flex:none;"><div style="position:absolute;top:2px;{{ r.knob }}:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div></div></div>
+            </sc-for>
+          </div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;">Privacy &amp; about</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);"><div><div style="font-size:14px;font-weight:600;">Pause listening history</div></div><div onClick="{{ togglePrivacy }}" class="tap" style="width:42px;height:24px;border-radius:13px;background:{{ privacyTrack }};position:relative;cursor:pointer;flex:none;"><div style="position:absolute;top:2px;{{ privacyKnob }}:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div></div></div>
+            <div class="tap" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;"><span style="font-size:14px;font-weight:600;">About Treble</span><span style="font-size:12.5px;color:var(--text-3);">v1.0.0</span></div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <!-- ============ MINI PLAYER + BOTTOM NAV ============ -->
+    <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;left:0;right:0;bottom:0;z-index:20;">
+        <div onClick="{{ openNP }}" class="tap" style="margin:0 10px 6px;height:56px;border-radius:13px;background:linear-gradient(135deg,#3a2018,#241612);display:flex;align-items:center;padding:0 12px;gap:11px;cursor:pointer;box-shadow:0 8px 22px var(--shadow);">
+          <div style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);flex:none;"></div>
+          <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Midnight Coast</div><div style="font-size:11px;color:rgba(255,255,255,.65);">Halsey Lane</div></div>
+          <div style="color:#fff;">{{ icHeart }}</div>
+          <div onClick="{{ togglePlayStop }}" style="color:#fff;">{{ miniPlayIcon }}</div>
+        </div>
+        <div style="background:var(--surface);border-top:1px solid var(--border);padding-top:9px;padding-bottom:{{ navBottomPad }};display:flex;position:relative;">
+          <sc-for list="{{ navTabs }}" as="n" hint-placeholder-count="4">
+            <div onClick="{{ n.go }}" class="tap" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ n.color }};">{{ n.icon }}<span style="font-size:10.5px;font-weight:{{ n.weight }};">{{ n.label }}</span></div>
+          </sc-for>
+          <sc-if value="{{ isIOS }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#1a1410;"></div></sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ NOW PLAYING (overlay) ============ -->
+    <sc-if value="{{ isNP }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:40;background:linear-gradient(180deg,#5a2630 0%,#2a1418 55%,#160f10 100%);display:flex;flex-direction:column;padding:var(--status-h) 26px 26px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;color:#fff;margin:6px 0 18px;"><div onClick="{{ closeNP }}" class="tap" style="cursor:pointer;">{{ icDown }}</div><div style="text-align:center;"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6);">Playing from playlist</div><div style="font-size:13px;font-weight:700;">Late Night Drive</div></div><div onClick="{{ goQueue }}" class="tap" style="cursor:pointer;">{{ icQueue }}</div></div>
+        <div style="width:100%;aspect-ratio:1;border-radius:18px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);box-shadow:0 26px 56px rgba(0,0,0,.5);margin:4px 0 28px;"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;"><div style="min-width:0;"><div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:27px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Midnight Coast</div><div style="font-size:15px;color:rgba(255,255,255,.66);margin-top:3px;">Halsey Lane</div></div><div style="color:#FF9A5C;margin-top:6px;">{{ icHeartLg }}</div></div>
+        <div style="margin:22px 0 6px;height:5px;border-radius:3px;background:rgba(255,255,255,.18);position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:#fff;border-radius:3px;"></div><div style="position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;background:#fff;"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.55);">1:42<span>3:58</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:22px;color:#fff;">{{ icShuffleLg }}{{ icPrevLg }}<div onClick="{{ togglePlay }}" class="tap" style="width:66px;height:66px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#2a1408;cursor:pointer;">{{ playIconLg }}</div>{{ icNextLg }}{{ icRepeatLg }}</div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;color:rgba(255,255,255,.7);">{{ icDevices }}<div style="display:flex;gap:22px;align-items:center;">{{ icShare }}<div onClick="{{ goLyrics }}" class="tap" style="cursor:pointer;">{{ icLyrics }}</div></div></div>
+        <sc-if value="{{ isIOS }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.5);"></div></sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ============ LYRICS (overlay) ============ -->
+    <sc-if value="{{ isLyrics }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:40;background:linear-gradient(180deg,#6a2c34,#2a1418 80%);display:flex;flex-direction:column;padding:var(--status-h) 0 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;color:#fff;padding:6px 26px 14px;"><div onClick="{{ closeNP }}" class="tap" style="cursor:pointer;">{{ icDown }}</div><div style="text-align:center;"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6);">Lyrics</div><div style="font-size:13px;font-weight:700;">Midnight Coast</div></div><div style="color:#fff;">{{ icMore }}</div></div>
+        <div class="ph" style="flex:1;min-height:0;overflow-y:auto;padding:14px 28px;display:flex;flex-direction:column;justify-content:center;gap:18px;">
+          <sc-for list="{{ lyrics }}" as="l" hint-placeholder-count="7"><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:{{ l.size }};line-height:1.2;color:{{ l.color }};letter-spacing:-.01em;">{{ l.text }}</div></sc-for>
+        </div>
+        <div style="flex:none;padding:0 26px 26px;"><div style="height:4px;border-radius:2px;background:rgba(255,255,255,.18);position:relative;margin-bottom:16px;"><div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:#fff;border-radius:2px;"></div></div><div style="display:flex;align-items:center;justify-content:space-between;color:#fff;">{{ icShuffleLg }}{{ icPrevLg }}<div onClick="{{ togglePlay }}" class="tap" style="width:60px;height:60px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#2a1408;cursor:pointer;">{{ playIconLg }}</div>{{ icNextLg }}{{ icRepeatLg }}</div></div>
+      </div>
+    </sc-if>
+
+    <!-- ============ QUEUE (overlay) ============ -->
+    <sc-if value="{{ isQueue }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;padding:var(--status-h) 0 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 20px 14px;"><div onClick="{{ closeNP }}" class="tap" style="cursor:pointer;color:var(--text);">{{ icDown }}</div><div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:17px;">Queue</div><div class="tap" style="cursor:pointer;color:var(--text-2);font-size:13px;font-weight:600;">Clear</div></div>
+        <div class="ph" style="flex:1;overflow-y:auto;padding:0 20px 24px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;">Now playing</div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:11px;background:var(--accent-soft);margin-bottom:22px;"><div style="width:48px;height:48px;border-radius:8px;flex:none;background:linear-gradient(135deg,#FF6B8B,#FFA86B);"></div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Midnight Coast</div><div style="font-size:12px;color:var(--text-2);">Halsey Lane</div></div><div style="display:flex;gap:2px;align-items:flex-end;height:18px;">{{ eqBars }}</div></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;">Next up · Late Night Drive</div>
+          <sc-for list="{{ tracks }}" as="s" hint-placeholder-count="7"><div class="tap" style="display:flex;align-items:center;gap:12px;padding:8px 0;cursor:pointer;"><div style="color:var(--text-3);">{{ icDrag }}</div><div style="width:44px;height:44px;border-radius:7px;flex:none;background:{{ s.art }};"></div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ s.artist }}</div></div><div style="font-size:12px;color:var(--text-3);">{{ s.dur }}</div></div></sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:640,&quot;height&quot;:1020},&quot;platform&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;android&quot;,&quot;ios&quot;],&quot;default&quot;:&quot;android&quot;,&quot;tsType&quot;:&quot;'android' | 'ios'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef=React.createRef();
+    this.accents={
+      Amber:{light:'#E2622E',soft:'rgba(226,98,46,.12)',dark:'#FF9A5C',darkSoft:'rgba(255,138,76,.14)',grad:'linear-gradient(135deg,#FFB35C,#FF6B5C)'},
+      Coral:{light:'#E0463E',soft:'rgba(224,70,62,.12)',dark:'#FF7A6B',darkSoft:'rgba(255,122,107,.15)',grad:'linear-gradient(135deg,#FF8A6B,#FF4E5C)'},
+      Rose:{light:'#D2456A',soft:'rgba(210,69,106,.12)',dark:'#FF8AB0',darkSoft:'rgba(255,138,176,.15)',grad:'linear-gradient(135deg,#FF8AB0,#E84E7C)'},
+      Gold:{light:'#B5851A',soft:'rgba(181,133,26,.14)',dark:'#F2C24E',darkSoft:'rgba(242,194,78,.16)',grad:'linear-gradient(135deg,#FFD27A,#F2A93E)'},
+    };
+    this.state={ screen:'home', platform: props.platform==='ios'?'ios':'android', dark: props.theme==='dark', accent:'Amber', libTab:'Playlists', playing:true,
+      sw:{skipSilence:false,normalize:true,crossfade:true,gapless:true}, privacy:false };
+  }
+  componentDidMount(){ this.applyTheme(); this.applyChrome(); }
+  applyTheme(){
+    const el=this.rootRef.current; if(!el) return;
+    const a=this.accents[this.state.accent]||this.accents.Amber; const d=this.state.dark;
+    const t=d?{bg:'#141210',panel:'#100e0c',surface:'#1c1917',s2:'#252119',border:'rgba(255,255,255,.08)',text:'#f5f1ea',t2:'#a8a098',t3:'#6f675f',shadow:'rgba(0,0,0,.5)',accent:a.dark,soft:a.darkSoft}
+                :{bg:'#faf7f2',panel:'#f1ece3',surface:'#ffffff',s2:'#f4efe7',border:'rgba(0,0,0,.07)',text:'#2a2620',t2:'#6b655e',t3:'#a59d94',shadow:'rgba(0,0,0,.16)',accent:a.light,soft:a.soft};
+    const S=(k,v)=>el.style.setProperty(k,v);
+    S('--bg',t.bg);S('--panel',t.panel);S('--surface',t.surface);S('--surface-2',t.s2);S('--border',t.border);
+    S('--text',t.text);S('--text-2',t.t2);S('--text-3',t.t3);S('--shadow',t.shadow);S('--accent',t.accent);S('--accent-soft',t.soft);S('--accent-grad',a.grad);
+  }
+  applyChrome(){ const el=this.rootRef.current; if(!el) return; el.style.setProperty('--status-h', this.state.platform==='ios'?'54px':'38px'); }
+  go(s){ this.setState({screen:s}); }
+  setPlatform(p){ this.setState({platform:p}, ()=>this.applyChrome()); }
+  setTheme(d){ this.setState({dark:d}, ()=>this.applyTheme()); }
+  setAccent(n){ this.setState({accent:n}, ()=>this.applyTheme()); }
+  ic(path,size,sw){ return React.createElement('svg',{width:size||22,height:size||22,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:sw||2,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none',display:'block'}},(Array.isArray(path)?path:[path]).map((d,i)=>React.createElement('path',{key:i,d}))); }
+  fic(children,size){ return React.createElement('svg',{width:size||22,height:size||22,viewBox:'0 0 24 24',fill:'currentColor',style:{flex:'none',display:'block'}},children); }
+  renderVals(){
+    const g=(a)=>`linear-gradient(135deg,${a})`;
+    const A=[g('#FF8A5B,#FFC15B'),g('#6C8CFF,#9B6CFF'),g('#2BC4A0,#7BE0C0'),g('#FF6B8B,#FFA86B'),g('#3A3A5C,#7A6CFF'),g('#E8A87C,#C38D5F'),g('#5BC0FF,#5B8AFF'),g('#F26B8A,#7A3A5C'),g('#8AC15B,#3A8A5C'),g('#FFC15B,#FF6B5C')];
+    const openNP=()=>this.setState({screen:'nowplaying'});
+    const sc=this.state.screen;
+    const isDark=this.state.dark, ios=this.state.platform==='ios';
+
+    const quickPicks=[{title:'Liked Songs',art:g('#7A6CFF,#FF6B8B')},{title:'Daily Mix 1',art:A[0]},{title:'Discover Weekly',art:A[2]},{title:'Chill Lofi',art:A[5]},{title:'Throwback',art:A[7]},{title:'Golden Hour',art:A[9]}];
+    const carousel=[{title:'Daily Mix 1',sub:'Halsey Lane +12',art:A[0]},{title:'Discover Weekly',sub:'Fresh finds',art:A[2]},{title:'Golden Hour',sub:'Warm indie',art:A[5]},{title:'Deep Focus',sub:'Ambient',art:A[4]}];
+    const recent=[['Midnight Coast','Halsey Lane',A[3]],['Paper Planes','Norah Vale',A[1]],['Golden','The Idle Hours',A[2]],['Velvet Morning','June Carver',A[5]]].map(s=>({title:s[0],artist:s[1],art:s[2],openNP}));
+    const recentSearch=[['Halsey Lane',A[0]],['Lo-fi beats',A[2]],['Norah Vale',A[3]],['Jazz Cafe',A[5]]].map(s=>({label:s[0],art:s[1]}));
+    const genres=[['Pop',A[3]],['Hip-Hop',A[4]],['Rock',A[7]],['Indie',A[0]],['Electronic',A[6]],['Jazz',A[5]],['Lo-fi',A[2]],['Ambient',A[1]]].map(x=>({label:x[0],art:x[1]}));
+    const charts=[['Top 50 — Global','Updated daily',g('#FF6B5C,#FFB35C')],['Viral 50','Trending now',g('#7A6CFF,#FF6B8B')],['New Music Friday','This week',A[2]],['Indie Rising','Underground',A[8]]].map(c=>({title:c[0],sub:c[1],art:c[2]}));
+    const libTabsData=['Playlists','Albums','Artists','Podcasts'];
+    const libTabs=libTabsData.map(t=>{const on=this.state.libTab===t;return{label:t,set:()=>this.setState({libTab:t}),bg:on?'var(--accent)':'var(--surface)',color:on?'#fff':'var(--text)',border:on?'var(--accent)':'var(--border)'};});
+    const tab=this.state.libTab;
+    let libItems;
+    if(tab==='Artists'){ libItems=[['Halsey Lane','Artist'],['Norah Vale','Artist'],['The Idle Hours','Artist'],['June Carver','Artist'],['Atlas Bay','Artist']].map((p,i)=>({title:p[0],sub:p[1],art:A[i%A.length],radius:'50%'})); }
+    else if(tab==='Podcasts'){ libItems=[['The Midnight Hour','Nocturne Media'],['Sound & Static','Halsey Lane'],['Liner Notes','Atlas Bay Studio'],['Off the Record','June Carver']].map((p,i)=>({title:p[0],sub:p[1],art:A[i%A.length],radius:'12px'})); }
+    else if(tab==='Albums'){ libItems=[['Coastline','The Idle Hours'],['Slow Burn','June Carver'],['Driftwood','Atlas Bay'],['Neon Tide','Halsey Lane'],['Quiet Light','Norah Vale']].map((p,i)=>({title:p[0],sub:p[1],art:A[i%A.length],radius:'9px'})); }
+    else { libItems=[['Liked Songs','Playlist · 842 songs',g('#7A6CFF,#FF6B8B')],['Late Night Drive','Playlist · Kaz',A[0]],['Focus Flow','Playlist · Kaz',A[2]],['Golden Hour','Playlist · Kaz',A[5]],['Rainy Days','Playlist · Kaz',A[4]],['Sunday Coffee','Playlist · Kaz',A[9]]].map(p=>({title:p[0],sub:p[1],art:p[2],radius:'9px'})); }
+
+    const tn=[['Midnight Coast','Halsey Lane','3:58'],['Paper Planes','Norah Vale','4:12'],['Golden','The Idle Hours','3:21'],['Velvet Morning','June Carver','3:45'],['Hollow','Atlas Bay','4:02'],['Cinnamon','Norah Vale','3:33'],['Lantern','Halsey Lane','3:50']];
+    const tracks=tn.map((s,i)=>({title:s[0],artist:s[1],dur:s[2],art:A[(i+1)%A.length],openNP}));
+    const downloads=tracks.slice(0,6);
+
+    const lyrics=[['City lights bleed in the rain','24px','rgba(255,255,255,.3)'],['Engine humming low and slow','24px','rgba(255,255,255,.3)'],['Driving down the midnight coast','30px','#FFB98A'],['Headlights chasing yesterday','24px','rgba(255,255,255,.3)'],['And I can\u2019t let go','24px','rgba(255,255,255,.2)'],['Of the way you said my name','24px','rgba(255,255,255,.2)'],['Under all that golden glow','24px','rgba(255,255,255,.2)']].map(l=>({text:l[0],size:l[1],color:l[2]}));
+
+    // settings
+    const tog=(k,title,sub)=>({title,sub,track:this.state.sw[k]?'var(--accent)':'var(--surface-2)',knob:this.state.sw[k]?'right':'left',toggle:()=>this.setState(s=>({sw:{...s.sw,[k]:!s.sw[k]}}))});
+    const pt=[tog('skipSilence','Skip silence','Trim quiet intros & outros'),tog('normalize','Audio normalization','Even loudness'),tog('crossfade','Crossfade','Blend transitions'),tog('gapless','Gapless playback','No gaps between tracks')];
+    const playerToggles=pt.map((r,i)=>({...r,border:i===pt.length-1?'transparent':'var(--border)'}));
+    const accentSwatches=Object.keys(this.accents).map(n=>({color:this.accents[n].grad,set:()=>this.setAccent(n),ring:this.state.accent===n?'var(--accent)':'transparent'}));
+
+    // jumper chips
+    const screensList=[['home','Home'],['search','Search'],['explore','Explore'],['library','Library'],['detail','Detail'],['queue','Queue'],['downloads','Downloads'],['settings','Settings'],['nowplaying','Now Playing'],['lyrics','Lyrics']];
+    const jumper=screensList.map(s=>{const on=sc===s[0];return{label:s[1],go:()=>this.go(s[0]),bg:on?'#E2622E':'#fff',color:on?'#fff':'#6b655e',border:on?'#E2622E':'rgba(0,0,0,.1)'};});
+
+    // bottom nav
+    const navActive = (sc==='home'||sc==='explore')?'home':(sc==='library'||sc==='detail'||sc==='downloads')?'library':sc;
+    const homeIc=this.ic(['M3 11.5 12 4l9 7.5','M5.5 9.8V20h13V9.8'],23), homeF=this.fic(React.createElement('path',{d:'M12 3 2 11.2V21h7v-6h6v6h7v-9.8z'}),23);
+    const searchIc=this.ic(['M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z','m21 21-4.3-4.3'],23);
+    const libIc=this.ic(['M4 19V6','M9.5 19V5','M15 19l4.5-13','M15 6l4.5 0'],23);
+    const setIc=this.ic(['M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z','M19.4 13a1.7 1.7 0 0 0 .3 1.9 2 2 0 1 1-2.8 2.8 1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2 2 2 0 1 1-2.8-2.8 1.7 1.7 0 0 0-1.2-2.9 2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9 2 2 0 1 1 2.8-2.8 1.7 1.7 0 0 0 2.9-1.2 2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2 2 2 0 1 1 2.8 2.8 1.7 1.7 0 0 0 .9 2.9z'],23);
+    const navDef=[['home','Home',navActive==='home'?homeF:homeIc],['search','Search',searchIc],['library','Library',libIc],['settings','Settings',setIc]];
+    const navTabs=navDef.map(n=>{const on=navActive===n[0];return{label:n[1],icon:n[2],go:()=>this.go(n[0]),color:on?'var(--accent)':'var(--text-3)',weight:on?'700':'600'};});
+
+    const prev=this.fic([React.createElement('path',{key:'a',d:'M6 5v14'}),React.createElement('path',{key:'b',d:'M20 5 9 12l11 7V5z'})],22);
+    const next=this.fic([React.createElement('path',{key:'a',d:'M18 5v14'}),React.createElement('path',{key:'b',d:'M4 5l11 7L4 19V5z'})],22);
+    const pause=this.fic([React.createElement('rect',{key:'a',x:6,y:5,width:4,height:14,rx:1}),React.createElement('rect',{key:'b',x:14,y:5,width:4,height:14,rx:1})],20);
+    const play=this.fic(React.createElement('path',{d:'M7 4v16l13-8z'}),22);
+    const shuffle=this.ic(['M16 3h5v5','M21 3l-7 7','M3 21l6-6','M3 3l7 7','M16 21h5v-5','M14 14l7 7'],20);
+    const repeat=this.ic(['M17 2l4 4-4 4','M3 11V9a4 4 0 0 1 4-4h14','M7 22l-4-4 4-4','M21 13v2a4 4 0 0 1-4 4H3'],20);
+    const sz=(el,s)=>React.cloneElement(el,{width:s,height:s});
+    const heart=this.fic(React.createElement('path',{d:'M12 21s-7-4.5-9.5-9C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 6.5C19 16.5 12 21 12 21z'}),20);
+    const playing=this.state.playing;
+
+    // status cluster (signal/wifi/battery)
+    const statusCluster=React.createElement('div',{style:{display:'flex',alignItems:'center',gap:'6px'}},
+      React.createElement('svg',{width:18,height:13,viewBox:'0 0 18 13',fill:'currentColor'},[1,2,3,4].map(i=>React.createElement('rect',{key:i,x:(i-1)*4.6,y:13-i*3,width:3.2,height:i*3,rx:1}))),
+      React.createElement('svg',{width:17,height:13,viewBox:'0 0 17 13',fill:'none',stroke:'currentColor',strokeWidth:1.6},['M1 4.5a11 11 0 0 1 15 0','M3.5 7.2a7 7 0 0 1 10 0','M6 9.8a3 3 0 0 1 5 0'].map((d,i)=>React.createElement('path',{key:i,d}))),
+      React.createElement('div',{style:{width:'24px',height:'12px',borderRadius:'3px',border:'1.5px solid currentColor',padding:'1.5px'}},React.createElement('div',{style:{width:'70%',height:'100%',borderRadius:'1px',background:'currentColor'}}))
+    );
+    const darkScreen = sc==='nowplaying'||sc==='lyrics';
+
+    return {
+      rootRef:this.rootRef,
+      // chrome
+      phoneRadius: ios?'46px':'34px', bezelRadius: ios?'59px':'47px', isIOS:ios, statusH:'var(--status-h)',
+      statusColor: darkScreen?'#ffffff':'var(--text)', statusCluster,
+      navBottomPad: ios?'22px':'12px',
+      // platform/theme controls
+      setAndroid:()=>this.setPlatform('android'), setIOS:()=>this.setPlatform('ios'),
+      andBg: !ios?'#E2622E':'transparent', andColor: !ios?'#fff':'#6b655e', iosBg: ios?'#E2622E':'transparent', iosColor: ios?'#fff':'#6b655e',
+      toggleTheme:()=>this.setTheme(!isDark), themeLabel: isDark?'Dark':'Light',
+      icTheme: isDark?this.ic(['M12 3v2','M12 19v2','M5 5l1.5 1.5','M17.5 17.5 19 19','M3 12h2','M19 12h2','M5 19l1.5-1.5','M17.5 6.5 19 5','M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'],17):this.ic('M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8z',17),
+      jumper,
+      // screen flags
+      isHome:sc==='home', isSearch:sc==='search', isExplore:sc==='explore', isLibrary:sc==='library', isDetail:sc==='detail',
+      isDownloads:sc==='downloads', isSettings:sc==='settings', isNP:sc==='nowplaying', isLyrics:sc==='lyrics', isQueue:sc==='queue',
+      showNav: !(sc==='nowplaying'||sc==='lyrics'||sc==='queue'),
+      // data
+      greeting:(new Date().getHours()<12?'Good morning':new Date().getHours()<18?'Good afternoon':'Good evening'),
+      quickPicks, carousel, recent, recentSearch, genres, charts, libTabs, libItems, tracks, downloads, lyrics, playerToggles, accentSwatches,
+      navTabs,
+      // settings theme seg + privacy
+      lightBg:!isDark?'var(--surface)':'transparent', lightColor:!isDark?'var(--accent)':'var(--text-2)',
+      darkBg:isDark?'var(--surface)':'transparent', darkColor:isDark?'var(--accent)':'var(--text-2)',
+      setLight:()=>this.setTheme(false), setDark:()=>this.setTheme(true),
+      privacyTrack:this.state.privacy?'var(--accent)':'var(--surface-2)', privacyKnob:this.state.privacy?'right':'left', togglePrivacy:()=>this.setState(s=>({privacy:!s.privacy})),
+      // handlers
+      goExplore:()=>this.go('explore'), goDetail:()=>this.go('detail'), goQueue:()=>this.go('queue'), goLyrics:()=>this.go('lyrics'),
+      openNP, closeNP:()=>this.go('home'),
+      togglePlay:()=>this.setState(s=>({playing:!s.playing})), togglePlayStop:(e)=>{e.stopPropagation(); this.setState(s=>({playing:!s.playing}));},
+      miniPlayIcon: playing?pause:play, playIconLg: playing?sz(pause,26):sz(play,26),
+      eqBars:React.createElement(React.Fragment,null,[0,1,2,3].map(i=>React.createElement('div',{key:i,style:{width:'3px',borderRadius:'2px',background:'var(--accent)',height:'100%',animation:`eqb 0.9s ease-in-out ${i*0.18}s infinite`}}))),
+      // icons
+      icSearch:searchIc, icMore:this.ic(['M5 12h.01','M12 12h.01','M19 12h.01'],22), icPlus:this.ic(['M12 5v14','M5 12h14'],22),
+      icChevron:this.ic('M9 6l6 6-6 6',16), icHeart:heart, icHeartLg:sz(heart,26),
+      icPlay:play, icShuffle:shuffle, icDownload:this.ic(['M12 3v12','m7.5 10.5 4.5 4.5 4.5-4.5','M5 20h14'],22),
+      icDownloaded:this.fic(React.createElement('path',{d:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 4.5-4.5 1.4 1.4z'}),20),
+      icDown:this.ic('M6 9l6 6 6-6',24), icQueue:this.ic(['M4 7h11','M4 12h11','M4 17h7','M18 13v6','M18 13l3 1.5-3 1.5'],22),
+      icShuffleLg:sz(shuffle,24), icRepeatLg:sz(repeat,24), icPrevLg:sz(prev,30), icNextLg:sz(next,30),
+      icDevices:this.ic(['M4 6h12v8H4z','M18 9h2v9h-8v-3'],22), icShare:this.ic(['M16 6l-4-4-4 4','M12 2v13','M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7'],22),
+      icLyrics:this.ic(['M4 6h11','M4 11h16','M4 16h9','M19 14v6','M19 14l3 1.5-3 1.5'],22),
+      icDrag:this.ic(['M9 6h.01','M9 12h.01','M9 18h.01','M15 6h.01','M15 12h.01','M15 18h.01'],18),
+    };
+  }
+}
+</script>
+</body>
+</html>

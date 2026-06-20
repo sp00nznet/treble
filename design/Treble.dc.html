@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesque:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;}
+    body{font-family:'Hanken Grotesque',sans-serif;-webkit-font-smoothing:antialiased;}
+    ::-webkit-scrollbar{width:11px;height:11px;}
+    ::-webkit-scrollbar-thumb{background:var(--scroll,rgba(140,130,120,.35));border-radius:8px;border:3px solid transparent;background-clip:padding-box;}
+    ::-webkit-scrollbar-thumb:hover{background:var(--scroll-h,rgba(140,130,120,.55));background-clip:padding-box;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    .trk:hover{background:var(--surface-2)!important;}
+    .trk:hover .trk-idx{opacity:0!important;}
+    .trk:hover .trk-play{opacity:1!important;}
+    .navitem:hover{background:var(--surface-2);}
+    .card{transition:transform .18s ease, box-shadow .18s ease;}
+    .card:hover{transform:translateY(-4px);}
+    .card:hover .card-play{opacity:1!important;transform:translateY(0)!important;}
+    .pressable{transition:transform .12s ease, filter .12s ease;}
+    .pressable:active{transform:scale(.94);}
+    .pressable:hover{filter:brightness(1.06);}
+    .chip{transition:background .15s ease,color .15s ease;}
+    @keyframes eqb{0%,100%{height:30%}50%{height:100%}}
+  </style>
+</helmet>
+
+<div ref="{{ rootRef }}" style="--bg:#faf7f2;--panel:#f1ece3;--surface:#ffffff;--surface-2:#f4efe7;--border:rgba(0,0,0,.07);--border-2:rgba(0,0,0,.05);--text:#2a2620;--text-2:#6b655e;--text-3:#a59d94;--shadow:rgba(0,0,0,.13);--accent:#E2622E;--accent-soft:rgba(226,98,46,.12);--accent-grad:linear-gradient(135deg,#FFB35C,#FF6B5C);--scroll:rgba(140,130,120,.35);--scroll-h:rgba(140,130,120,.55);height:100vh;width:100vw;overflow:hidden;background:var(--bg);color:var(--text);display:flex;flex-direction:column;">
+
+  <!-- ===== TITLEBAR ===== -->
+  <div style="height:46px;flex:none;display:flex;align-items:center;padding:0 16px;background:var(--panel);border-bottom:1px solid var(--border);gap:14px;-webkit-app-region:drag;">
+    <div style="display:flex;gap:8px;">
+      <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
+      <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
+      <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+    </div>
+    <div style="display:flex;gap:6px;margin-left:6px;color:var(--text-3);">
+      <div class="pressable" style="width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;">{{ icBack }}</div>
+      <div class="pressable" style="width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.5;">{{ icFwd }}</div>
+    </div>
+    <div style="flex:1;display:flex;justify-content:center;">
+      <div onClick="{{ goSearch }}" style="width:420px;height:32px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:9px;color:var(--text-3);font-size:13px;cursor:text;-webkit-app-region:no-drag;">{{ icSearch }} <span>Search songs, artists, albums…</span><span style="margin-left:auto;font-size:11px;border:1px solid var(--border);border-radius:5px;padding:1px 6px;">⌘K</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;-webkit-app-region:no-drag;">
+      <div class="pressable" onClick="{{ toggleTheme }}" style="width:32px;height:32px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-2);cursor:pointer;">{{ icTheme }}</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:3px 10px 3px 3px;border-radius:20px;background:var(--surface);border:1px solid var(--border);cursor:pointer;">
+        <div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#7A6CFF,#FF6B8B);"></div>
+        <span style="font-size:13px;font-weight:600;">Kaz</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BODY ===== -->
+  <div style="flex:1;display:flex;min-height:0;">
+
+    <!-- ---- NAV ---- -->
+    <div style="width:230px;flex:none;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 12px;">
+      <div style="display:flex;align-items:center;gap:10px;padding:2px 10px 18px;">
+        <div style="width:30px;height:30px;border-radius:9px;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#fff;">{{ icLogo }}</div>
+        <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:21px;letter-spacing:-.02em;">Treble</div>
+      </div>
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+        <div class="navitem" onClick="{{ n.go }}" style="display:flex;align-items:center;gap:12px;padding:9px 11px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;color:{{ n.color }};background:{{ n.bg }};box-shadow:{{ n.shadow }};margin-bottom:2px;">{{ n.icon }} {{ n.label }}</div>
+      </sc-for>
+      <div style="height:1px;background:var(--border);margin:14px 8px 12px;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 11px 10px;">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Playlists</span>
+        <div class="pressable" style="cursor:pointer;color:var(--text-3);">{{ icPlus }}</div>
+      </div>
+      <div style="flex:1;overflow-y:auto;margin:0 -4px;padding:0 4px;">
+        <sc-for list="{{ playlists }}" as="p" hint-placeholder-count="7">
+          <div class="navitem" onClick="{{ p.open }}" style="display:flex;align-items:center;gap:11px;padding:6px 11px;border-radius:8px;cursor:pointer;margin-bottom:1px;">
+            <div style="width:34px;height:34px;border-radius:7px;flex:none;background:{{ p.art }};"></div>
+            <div style="min-width:0;">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.title }}</div>
+              <div style="font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.sub }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- ---- CENTER ---- -->
+    <div style="flex:1;min-width:0;overflow-y:auto;background:var(--bg);position:relative;">
+
+      <!-- HOME -->
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:30px 34px 40px;">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:26px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--accent);letter-spacing:.02em;">{{ greeting }}</div>
+              <h1 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:32px;letter-spacing:-.02em;margin-top:3px;">Welcome back, Kaz</h1>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div class="chip pressable" style="padding:7px 16px;border-radius:20px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">All</div>
+              <div class="chip pressable" style="padding:7px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;">Music</div>
+              <div class="chip pressable" style="padding:7px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;">Podcasts</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:38px;">
+            <sc-for list="{{ quickPicks }}" as="q" hint-placeholder-count="6">
+              <div class="navitem trk" onClick="{{ q.open }}" style="display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;height:66px;cursor:pointer;position:relative;">
+                <div style="width:66px;height:66px;flex:none;background:{{ q.art }};"></div>
+                <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ q.title }}</div>
+                <div class="trk-play pressable" style="margin-left:auto;margin-right:14px;width:40px;height:40px;border-radius:50%;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#fff;opacity:0;box-shadow:0 6px 16px var(--shadow);flex:none;">{{ icPlaySm }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;">
+            <h2 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:22px;">Made for you</h2>
+            <span style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);cursor:pointer;">Show all</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-bottom:40px;">
+            <sc-for list="{{ madeForYou }}" as="m" hint-placeholder-count="5">
+              <div class="card" onClick="{{ m.open }}" style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;">
+                <div style="width:100%;aspect-ratio:1;border-radius:9px;background:{{ m.art }};box-shadow:0 8px 20px var(--shadow);margin-bottom:12px;position:relative;overflow:visible;">
+                  <div class="card-play pressable" style="position:absolute;right:9px;bottom:9px;width:44px;height:44px;border-radius:50%;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 8px 18px rgba(255,107,92,.45);opacity:0;transform:translateY(8px);">{{ icPlaySm }}</div>
+                </div>
+                <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+                <div style="font-size:13px;color:var(--text-2);margin-top:3px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ m.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
+            <h2 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:22px;">Recently played</h2>
+          </div>
+          <div>
+            <sc-for list="{{ recentSongs }}" as="s" hint-placeholder-count="6">
+              <div class="trk" onClick="{{ s.play }}" onContextMenu="{{ s.menu }}" style="display:grid;grid-template-columns:30px 1fr 1fr 70px;gap:16px;align-items:center;padding:8px 12px;border-radius:9px;cursor:pointer;">
+                <div style="position:relative;width:30px;height:18px;">
+                  <div class="trk-idx" style="position:absolute;inset:0;display:flex;align-items:center;font-size:14px;color:var(--text-3);">{{ s.n }}</div>
+                  <div class="trk-play" style="position:absolute;inset:0;display:flex;align-items:center;color:var(--accent);opacity:0;">{{ icPlayXs }}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                  <div style="width:40px;height:40px;border-radius:6px;flex:none;background:{{ s.art }};"></div>
+                  <div style="min-width:0;"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ s.artist }}</div></div>
+                </div>
+                <div style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.album }}</div>
+                <div style="font-size:13px;color:var(--text-3);text-align:right;">{{ s.dur }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- SEARCH -->
+      <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:30px 34px 40px;">
+          <div style="position:relative;max-width:560px;margin-bottom:34px;">
+            <div style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--text-3);">{{ icSearch }}</div>
+            <input placeholder="What do you want to listen to?" style="width:100%;height:52px;border-radius:12px;border:1px solid var(--border);background:var(--surface);padding:0 18px 0 46px;font-size:16px;font-family:inherit;color:var(--text);outline:none;" />
+          </div>
+          <h2 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;margin-bottom:14px;">Recent searches</h2>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:36px;">
+            <sc-for list="{{ recentSearches }}" as="r" hint-placeholder-count="5">
+              <div class="chip pressable" style="display:flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:24px;background:var(--surface);border:1px solid var(--border);cursor:pointer;">
+                <div style="width:26px;height:26px;border-radius:50%;background:{{ r.art }};"></div>
+                <span style="font-size:13px;font-weight:600;">{{ r.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <h2 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;margin-bottom:16px;">Browse all</h2>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+            <sc-for list="{{ genres }}" as="g" hint-placeholder-count="12">
+              <div class="card pressable" style="height:120px;border-radius:14px;background:{{ g.art }};padding:16px;position:relative;overflow:hidden;cursor:pointer;">
+                <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:19px;color:#fff;letter-spacing:-.01em;text-shadow:0 1px 3px rgba(0,0,0,.2);">{{ g.label }}</div>
+                <div style="position:absolute;right:-10px;bottom:-10px;width:70px;height:70px;border-radius:10px;background:rgba(255,255,255,.22);transform:rotate(25deg);"></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- EXPLORE -->
+      <sc-if value="{{ isExplore }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:0 0 40px;">
+          <div style="padding:48px 34px 30px;background:radial-gradient(110% 90% at 85% -20%,var(--accent-soft),transparent 60%);">
+            <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);">Explore</div>
+            <h1 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:34px;letter-spacing:-.02em;margin-top:6px;">Fresh sounds &amp; deep cuts</h1>
+          </div>
+          <div style="padding:6px 34px 0;">
+            <h2 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:22px;margin-bottom:16px;">New releases</h2>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-bottom:38px;">
+              <sc-for list="{{ newReleases }}" as="m" hint-placeholder-count="5">
+                <div class="card" onClick="{{ m.open }}" style="cursor:pointer;">
+                  <div style="width:100%;aspect-ratio:1;border-radius:12px;background:{{ m.art }};box-shadow:0 8px 20px var(--shadow);margin-bottom:11px;position:relative;">
+                    <div class="card-play pressable" style="position:absolute;right:9px;bottom:9px;width:44px;height:44px;border-radius:50%;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 8px 18px rgba(255,107,92,.45);opacity:0;transform:translateY(8px);">{{ icPlaySm }}</div>
+                  </div>
+                  <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+                  <div style="font-size:13px;color:var(--text-2);margin-top:2px;">{{ m.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <h2 style="font-family:'Bricolage Grotesque';font-weight:700;font-size:22px;margin-bottom:16px;">Charts</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <sc-for list="{{ charts }}" as="c" hint-placeholder-count="4">
+                <div class="navitem pressable" style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+                  <div style="width:56px;height:56px;border-radius:9px;flex:none;background:{{ c.art }};"></div>
+                  <div><div style="font-size:15px;font-weight:700;">{{ c.title }}</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">{{ c.sub }}</div></div>
+                  <div style="margin-left:auto;color:var(--text-3);">{{ icChevron }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- LIBRARY -->
+      <sc-if value="{{ isLibrary }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:30px 34px 40px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <h1 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:30px;letter-spacing:-.02em;">Your Library</h1>
+            <div class="pressable" style="display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:20px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">{{ icPlus }} New</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:24px;">
+            <sc-for list="{{ libTabs }}" as="t" hint-placeholder-count="4">
+              <div class="chip pressable" onClick="{{ t.set }}" style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.color }};border:1px solid {{ t.border }};">{{ t.label }}</div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:18px;">
+            <sc-for list="{{ libItems }}" as="m" hint-placeholder-count="10">
+              <div class="card" onClick="{{ m.open }}" style="cursor:pointer;">
+                <div style="width:100%;aspect-ratio:1;border-radius:{{ m.radius }};background:{{ m.art }};box-shadow:0 8px 20px var(--shadow);margin-bottom:11px;"></div>
+                <div style="font-size:14px;font-weight:700;text-align:{{ m.align }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+                <div style="font-size:13px;color:var(--text-2);margin-top:2px;text-align:{{ m.align }};">{{ m.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- DETAIL (album/playlist) -->
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="padding:40px 34px 24px;display:flex;gap:26px;align-items:flex-end;background:linear-gradient(180deg,var(--accent-soft),transparent);">
+            <div style="width:212px;height:212px;border-radius:14px;flex:none;background:{{ detailArt }};box-shadow:0 20px 44px var(--shadow);"></div>
+            <div style="padding-bottom:6px;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2);">Playlist</div>
+              <h1 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:54px;line-height:1.02;letter-spacing:-.03em;margin:8px 0 14px;">{{ detailTitle }}</h1>
+              <div style="font-size:14px;color:var(--text-2);line-height:1.5;max-width:520px;">{{ detailDesc }}</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--text-2);">
+                <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#7A6CFF,#FF6B8B);"></div>
+                <span style="font-weight:700;color:var(--text);">Kaz</span><span>·</span><span>24 songs, 1h 38m</span>
+              </div>
+            </div>
+          </div>
+          <div style="padding:18px 34px 8px;display:flex;align-items:center;gap:18px;">
+            <div class="pressable" style="width:56px;height:56px;border-radius:50%;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 10px 24px rgba(255,107,92,.4);cursor:pointer;">{{ icPlay }}</div>
+            <div class="pressable" style="color:var(--accent);cursor:pointer;">{{ icHeartLg }}</div>
+            <div class="pressable" style="color:var(--text-2);cursor:pointer;">{{ icDownload }}</div>
+            <div class="pressable" style="color:var(--text-2);cursor:pointer;">{{ icMore }}</div>
+          </div>
+          <div style="padding:8px 34px 40px;">
+            <div style="display:grid;grid-template-columns:30px 1fr 1fr 90px 60px;gap:16px;padding:0 12px 8px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">
+              <div>#</div><div>Title</div><div>Album</div><div>Date added</div><div style="text-align:right;">{{ icClock }}</div>
+            </div>
+            <sc-for list="{{ detailTracks }}" as="s" hint-placeholder-count="10">
+              <div class="trk" onClick="{{ s.play }}" onContextMenu="{{ s.menu }}" style="display:grid;grid-template-columns:30px 1fr 1fr 90px 60px;gap:16px;align-items:center;padding:8px 12px;border-radius:9px;cursor:pointer;">
+                <div style="position:relative;width:30px;height:18px;">
+                  <div class="trk-idx" style="position:absolute;inset:0;display:flex;align-items:center;font-size:14px;color:var(--text-3);">{{ s.n }}</div>
+                  <div class="trk-play" style="position:absolute;inset:0;display:flex;align-items:center;color:var(--accent);opacity:0;">{{ icPlayXs }}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                  <div style="width:40px;height:40px;border-radius:6px;flex:none;background:{{ s.art }};"></div>
+                  <div style="min-width:0;"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ s.artist }}</div></div>
+                </div>
+                <div style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.album }}</div>
+                <div style="font-size:13px;color:var(--text-3);">{{ s.date }}</div>
+                <div style="font-size:13px;color:var(--text-3);text-align:right;">{{ s.dur }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- DOWNLOADS -->
+      <sc-if value="{{ isDownloads }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:30px 34px 40px;">
+          <h1 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:30px;letter-spacing:-.02em;margin-bottom:4px;">Downloads</h1>
+          <div style="font-size:14px;color:var(--text-2);margin-bottom:22px;">Available offline · cached on this device</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:28px;display:flex;align-items:center;gap:20px;">
+            <div style="flex:1;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;"><span style="font-weight:600;">Storage used</span><span style="color:var(--text-2);">2.4 GB of 8 GB</span></div>
+              <div style="height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;"><div style="height:100%;width:30%;background:var(--accent-grad);border-radius:4px;"></div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding-left:20px;border-left:1px solid var(--border);">
+              <span style="font-size:13px;font-weight:600;">Auto-download</span>
+              <div style="width:42px;height:24px;border-radius:13px;background:var(--accent);position:relative;cursor:pointer;"><div style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div></div>
+            </div>
+          </div>
+          <div>
+            <sc-for list="{{ downloads }}" as="s" hint-placeholder-count="8">
+              <div class="trk" onClick="{{ s.play }}" onContextMenu="{{ s.menu }}" style="display:grid;grid-template-columns:1fr 1fr 30px 60px;gap:16px;align-items:center;padding:8px 12px;border-radius:9px;cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                  <div style="width:42px;height:42px;border-radius:7px;flex:none;background:{{ s.art }};"></div>
+                  <div style="min-width:0;"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ s.artist }}</div></div>
+                </div>
+                <div style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.album }}</div>
+                <div style="color:#2BAE66;display:flex;justify-content:center;">{{ icDownloaded }}</div>
+                <div style="font-size:13px;color:var(--text-3);text-align:right;">{{ s.dur }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- SETTINGS -->
+      <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:30px 34px 48px;max-width:780px;">
+          <h1 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:30px;letter-spacing:-.02em;margin-bottom:26px;">Settings</h1>
+
+          <!-- APPEARANCE -->
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">Appearance</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:28px;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div><div style="font-size:15px;font-weight:600;">Theme</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">Light, dark, or follow system</div></div>
+              <div style="display:flex;background:var(--surface-2);border-radius:9px;padding:3px;">
+                <sc-for list="{{ themeSeg }}" as="o" hint-placeholder-count="3">
+                  <div onClick="{{ o.set }}" class="pressable" style="padding:6px 15px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.color }};box-shadow:{{ o.shadow }};">{{ o.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div><div style="font-size:15px;font-weight:600;">Accent color</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">Signature highlight color</div></div>
+              <div style="display:flex;gap:10px;">
+                <sc-for list="{{ accentSwatches }}" as="a" hint-placeholder-count="4">
+                  <div onClick="{{ a.set }}" class="pressable" style="width:28px;height:28px;border-radius:50%;background:{{ a.color }};cursor:pointer;border:3px solid {{ a.ring }};box-shadow:0 2px 6px var(--shadow);"></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div><div style="font-size:15px;font-weight:600;">Player text alignment</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">Title & artist in full-screen player</div></div>
+              <div style="display:flex;background:var(--surface-2);border-radius:9px;padding:3px;">
+                <sc-for list="{{ textAlignSeg }}" as="o" hint-placeholder-count="2"><div onClick="{{ o.set }}" class="pressable" style="padding:6px 15px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.color }};box-shadow:{{ o.shadow }};">{{ o.label }}</div></sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div><div style="font-size:15px;font-weight:600;">Progress slider style</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">Default or squiggly waveform</div></div>
+              <div style="display:flex;background:var(--surface-2);border-radius:9px;padding:3px;">
+                <sc-for list="{{ sliderStyleSeg }}" as="o" hint-placeholder-count="2"><div onClick="{{ o.set }}" class="pressable" style="padding:6px 15px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.color }};box-shadow:{{ o.shadow }};">{{ o.label }}</div></sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div><div style="font-size:15px;font-weight:600;">Grid item size</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">Density of album & playlist grids</div></div>
+              <div style="display:flex;background:var(--surface-2);border-radius:9px;padding:3px;">
+                <sc-for list="{{ gridSizeSeg }}" as="o" hint-placeholder-count="2"><div onClick="{{ o.set }}" class="pressable" style="padding:6px 15px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.color }};box-shadow:{{ o.shadow }};">{{ o.label }}</div></sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div><div style="font-size:15px;font-weight:600;">Default open tab</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">Screen shown at launch</div></div>
+              <div class="pressable" style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;background:var(--surface-2);font-size:13px;font-weight:600;cursor:pointer;">{{ defaultTabVal }} {{ icChevron }}</div>
+            </div>
+            <sc-for list="{{ appearanceToggles }}" as="r" hint-placeholder-count="1">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid {{ r.border }};">
+                <div><div style="font-size:15px;font-weight:600;">{{ r.title }}</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">{{ r.sub }}</div></div>
+                <div onClick="{{ r.toggle }}" class="pressable" style="width:42px;height:24px;border-radius:13px;background:{{ r.track }};position:relative;cursor:pointer;"><div style="position:absolute;top:2px;{{ r.knob }}:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div></div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- CONTENT -->
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">Content &amp; account</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:28px;overflow:hidden;">
+            <div class="navitem" style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;">
+              <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7A6CFF,#FF6B8B);"></div>
+              <div style="flex:1;"><div style="font-size:15px;font-weight:600;">Kaz</div><div style="font-size:13px;color:var(--text-2);margin-top:1px;">Signed in with YouTube Music · @kaz</div></div>
+              <div class="pressable" style="padding:7px 14px;border-radius:9px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;">Sign out</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div><div style="font-size:15px;font-weight:600;">Content language</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">Search & recommendations language</div></div>
+              <div class="pressable" style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;background:var(--surface-2);font-size:13px;font-weight:600;cursor:pointer;">{{ langVal }} {{ icChevron }}</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div><div style="font-size:15px;font-weight:600;">Content country</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">Region for charts & releases</div></div>
+              <div class="pressable" style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;background:var(--surface-2);font-size:13px;font-weight:600;cursor:pointer;">{{ countryVal }} {{ icChevron }}</div>
+            </div>
+            <sc-for list="{{ contentToggles }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid {{ r.border }};">
+                <div><div style="font-size:15px;font-weight:600;">{{ r.title }}</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">{{ r.sub }}</div></div>
+                <div onClick="{{ r.toggle }}" class="pressable" style="width:42px;height:24px;border-radius:13px;background:{{ r.track }};position:relative;cursor:pointer;"><div style="position:absolute;top:2px;{{ r.knob }}:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div></div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- PLAYER & AUDIO -->
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">Player &amp; audio</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:28px;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div><div style="font-size:15px;font-weight:600;">Audio quality</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">Streaming & download bitrate</div></div>
+              <div style="display:flex;background:var(--surface-2);border-radius:9px;padding:3px;">
+                <sc-for list="{{ audioQualitySeg }}" as="o" hint-placeholder-count="3"><div onClick="{{ o.set }}" class="pressable" style="padding:6px 15px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.color }};box-shadow:{{ o.shadow }};">{{ o.label }}</div></sc-for>
+              </div>
+            </div>
+            <sc-for list="{{ playerAudioToggles }}" as="r" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid {{ r.border }};">
+                <div><div style="font-size:15px;font-weight:600;">{{ r.title }}</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">{{ r.sub }}</div></div>
+                <div onClick="{{ r.toggle }}" class="pressable" style="width:42px;height:24px;border-radius:13px;background:{{ r.track }};position:relative;cursor:pointer;"><div style="position:absolute;top:2px;{{ r.knob }}:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div></div>
+              </div>
+            </sc-for>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);padding:14px 20px 4px;">Queue &amp; behavior</div>
+            <sc-for list="{{ queueToggles }}" as="r" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid {{ r.border }};">
+                <div><div style="font-size:15px;font-weight:600;">{{ r.title }}</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">{{ r.sub }}</div></div>
+                <div onClick="{{ r.toggle }}" class="pressable" style="width:42px;height:24px;border-radius:13px;background:{{ r.track }};position:relative;cursor:pointer;"><div style="position:absolute;top:2px;{{ r.knob }}:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div></div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- STORAGE -->
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">Storage</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:28px;overflow:hidden;">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;"><span style="font-weight:600;">Song cache</span><span style="color:var(--text-2);">1.8 GB used · max 4 GB</span></div>
+              <div style="height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;"><div style="height:100%;width:45%;background:var(--accent-grad);border-radius:4px;"></div></div>
+            </div>
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;"><span style="font-weight:600;">Image cache</span><span style="color:var(--text-2);">240 MB used · max 512 MB</span></div>
+              <div style="height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;"><div style="height:100%;width:47%;background:var(--accent-grad);border-radius:4px;"></div></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;">
+              <div style="font-size:14px;color:var(--text-2);">Free up space on this device</div>
+              <div style="display:flex;gap:8px;">
+                <div class="pressable" style="padding:8px 14px;border-radius:9px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;">Clear song cache</div>
+                <div class="pressable" style="padding:8px 14px;border-radius:9px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;">Clear images</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PRIVACY -->
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">Privacy</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:28px;overflow:hidden;">
+            <sc-for list="{{ privacyToggles }}" as="r" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+                <div><div style="font-size:15px;font-weight:600;">{{ r.title }}</div><div style="font-size:13px;color:var(--text-2);margin-top:2px;">{{ r.sub }}</div></div>
+                <div onClick="{{ r.toggle }}" class="pressable" style="width:42px;height:24px;border-radius:13px;background:{{ r.track }};position:relative;cursor:pointer;"><div style="position:absolute;top:2px;{{ r.knob }}:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div></div>
+              </div>
+            </sc-for>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;">
+              <div style="font-size:14px;color:var(--text-2);">Clear stored history</div>
+              <div style="display:flex;gap:8px;">
+                <div class="pressable" style="padding:8px 14px;border-radius:9px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;">Clear listening</div>
+                <div class="pressable" style="padding:8px 14px;border-radius:9px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;">Clear searches</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABOUT -->
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">About</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid var(--border);">
+              <div style="width:42px;height:42px;border-radius:11px;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#fff;">{{ icLogo }}</div>
+              <div style="flex:1;"><div style="font-size:15px;font-weight:700;">Treble</div><div style="font-size:13px;color:var(--text-2);margin-top:1px;">Version 1.0.0 · Desktop</div></div>
+              <div class="pressable" style="padding:7px 14px;border-radius:9px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;">Check for updates</div>
+            </div>
+            <div class="navitem" style="display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid var(--border);cursor:pointer;font-size:14px;font-weight:600;">GitHub repository<span style="color:var(--text-3);">{{ icChevron }}</span></div>
+            <div class="navitem" style="display:flex;align-items:center;justify-content:space-between;padding:15px 20px;cursor:pointer;font-size:14px;font-weight:600;">Open-source licenses<span style="color:var(--text-3);">{{ icChevron }}</span></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- QUEUE -->
+      <sc-if value="{{ isQueue }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:30px 34px 48px;max-width:860px;">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;">
+            <h1 style="font-family:'Bricolage Grotesque';font-weight:800;font-size:30px;letter-spacing:-.02em;">Queue</h1>
+            <div class="pressable" style="display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;color:var(--text-2);">{{ icShuffle }} Clear queue</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;">Now playing</div>
+          <div style="display:flex;align-items:center;gap:14px;padding:12px;border-radius:12px;background:var(--accent-soft);margin-bottom:28px;">
+            <div style="width:52px;height:52px;border-radius:9px;flex:none;background:linear-gradient(135deg,#FF6B8B,#FFA86B);"></div>
+            <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Midnight Coast</div><div style="font-size:13px;color:var(--text-2);">Halsey Lane · Neon Tide</div></div>
+            <div style="display:flex;gap:2px;align-items:flex-end;height:20px;">{{ eqBars }}</div>
+            <div style="font-size:13px;color:var(--text-3);">3:58</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Next up · from Late Night Drive</div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);">Up next</div>
+          </div>
+          <sc-for list="{{ queueTracks }}" as="s" hint-placeholder-count="8">
+            <div class="trk" onClick="{{ s.play }}" onContextMenu="{{ s.menu }}" style="display:grid;grid-template-columns:24px 1fr 1fr 60px;gap:16px;align-items:center;padding:8px 12px;border-radius:9px;cursor:pointer;">
+              <div style="color:var(--text-3);display:flex;">{{ icDrag }}</div>
+              <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                <div style="width:40px;height:40px;border-radius:6px;flex:none;background:{{ s.art }};"></div>
+                <div style="min-width:0;"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div><div style="font-size:12px;color:var(--text-2);">{{ s.artist }}</div></div>
+              </div>
+              <div style="font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.album }}</div>
+              <div style="font-size:13px;color:var(--text-3);text-align:right;">{{ s.dur }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <!-- ---- DOCKED NOW-PLAYING PANEL ---- -->
+    <div style="width:300px;flex:none;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;padding:22px 20px 18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Now playing</span>
+        <div style="display:flex;gap:6px;color:var(--text-2);">
+          <div class="pressable" onClick="{{ openMini }}" style="cursor:pointer;" title="Pop out mini player">{{ icMini }}</div>
+          <div class="pressable" onClick="{{ openNP }}" style="cursor:pointer;" title="Expand">{{ icExpand }}</div>
+        </div>
+      </div>
+      <div onClick="{{ openNP }}" class="pressable" style="width:100%;aspect-ratio:1;border-radius:16px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);box-shadow:0 16px 34px var(--shadow);margin-bottom:18px;cursor:pointer;"></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <div style="min-width:0;">
+          <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Midnight Coast</div>
+          <div style="font-size:14px;color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Halsey Lane · Neon Tide</div>
+        </div>
+        <div class="pressable" style="color:var(--accent);cursor:pointer;margin-top:3px;">{{ icHeart }}</div>
+      </div>
+      <div style="margin:18px 0 6px;height:5px;border-radius:3px;background:var(--surface-2);position:relative;cursor:pointer;"><div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:var(--accent-grad);border-radius:3px;"></div><div style="position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 4px var(--shadow);"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);">1:42<span>3:58</span></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-top:16px;color:var(--text-2);">
+        {{ icShuffle }}{{ icPrev }}
+        <div onClick="{{ togglePlay }}" class="pressable" style="width:50px;height:50px;border-radius:50%;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 8px 20px rgba(255,107,92,.4);cursor:pointer;">{{ playIcon }}</div>
+        {{ icNext }}{{ icRepeat }}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;color:var(--text-3);">
+        <div class="pressable" style="cursor:pointer;">{{ icVolume }}</div>
+        <div style="flex:1;margin:0 10px;height:4px;border-radius:2px;background:var(--surface-2);position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:65%;background:var(--text-3);border-radius:2px;"></div></div>
+        <div class="pressable" onClick="{{ goQueue }}" style="cursor:pointer;" title="Queue">{{ icQueue }}</div>
+      </div>
+      <div style="flex:1;"></div>
+      <div onClick="{{ openNP }}" style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:15px 16px;cursor:pointer;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);">Lyrics</span><div class="pressable" onClick="{{ openLyricsStop }}" style="cursor:pointer;color:var(--text-3);" title="Pop out lyrics">{{ icMini }}</div></div>
+        <div style="font-size:13.5px;line-height:1.7;color:var(--text-3);">Engine humming low and slow<br><span style="color:var(--text);font-weight:600;">Driving down the midnight coast</span><br>Headlights chasing yesterday</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FULL-SCREEN NOW PLAYING (Lyrics split) ===== -->
+  <sc-if value="{{ npOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:50;display:flex;background:var(--np-bg,#140f0d);">
+      <!-- titlebar strip -->
+      <div style="position:absolute;top:0;left:0;right:0;height:46px;display:flex;align-items:center;padding:0 16px;gap:8px;z-index:5;-webkit-app-region:drag;">
+        <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
+        <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
+        <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+        <div style="flex:1;"></div>
+        <div onClick="{{ closeNP }}" class="pressable" style="-webkit-app-region:no-drag;width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;">{{ icCollapse }}</div>
+      </div>
+      <!-- left -->
+      <div style="width:46%;max-width:560px;flex:none;background:linear-gradient(180deg,#3a1c20,#140f0d 70%);padding:72px 56px 44px;display:flex;flex-direction:column;justify-content:center;">
+        <div style="width:300px;height:300px;border-radius:18px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);box-shadow:0 28px 64px rgba(0,0,0,.55);margin-bottom:34px;"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;">
+          <div style="min-width:0;">
+            <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:34px;color:#fff;letter-spacing:-.01em;">Midnight Coast</div>
+            <div style="font-size:17px;color:rgba(255,255,255,.66);margin-top:5px;">Halsey Lane · Neon Tide</div>
+          </div>
+          <div class="pressable" style="color:#FF9A5C;margin-top:8px;cursor:pointer;">{{ icHeartLg }}</div>
+        </div>
+        <div style="margin:30px 0 7px;height:5px;border-radius:3px;background:rgba(255,255,255,.16);position:relative;"><div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:linear-gradient(90deg,#FFB35C,#FF6B5C);border-radius:3px;"></div><div style="position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;background:#fff;"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.5);">1:42<span>3:58</span></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:30px;margin-top:26px;color:#fff;">
+          {{ icShuffleLg }}{{ icPrevLg }}
+          <div onClick="{{ togglePlay }}" class="pressable" style="width:64px;height:64px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#2a1408;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.4);">{{ playIconLg }}</div>
+          {{ icNextLg }}{{ icRepeatLg }}
+        </div>
+      </div>
+      <!-- right lyrics -->
+      <div style="flex:1;min-width:0;padding:72px 64px;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;gap:20px;">
+        <sc-for list="{{ lyrics }}" as="l" hint-placeholder-count="9">
+          <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:{{ l.size }};line-height:1.18;color:{{ l.color }};letter-spacing:-.01em;cursor:pointer;transition:color .3s;">{{ l.text }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== MINI / FLOATING PLAYER (separate always-on-top window) ===== -->
+  <sc-if value="{{ miniOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:26px;bottom:26px;z-index:60;width:340px;border-radius:18px;overflow:hidden;background:#171210;box-shadow:0 24px 60px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);">
+      <div style="height:30px;display:flex;align-items:center;padding:0 12px;gap:7px;-webkit-app-region:drag;">
+        <div style="width:11px;height:11px;border-radius:50%;background:#ff5f57;"></div>
+        <div style="width:11px;height:11px;border-radius:50%;background:#febc2e;"></div>
+        <div style="width:11px;height:11px;border-radius:50%;background:#28c840;"></div>
+        <div style="flex:1;text-align:center;font-size:11px;font-weight:600;color:rgba(255,255,255,.45);">Mini player</div>
+        <div class="pressable" style="-webkit-app-region:no-drag;color:rgba(255,255,255,.5);cursor:pointer;" title="Pin">{{ icPin }}</div>
+        <div onClick="{{ closeMini }}" class="pressable" style="-webkit-app-region:no-drag;color:rgba(255,255,255,.5);cursor:pointer;" title="Close">{{ icMiniClose }}</div>
+      </div>
+      <div style="position:relative;height:170px;background:linear-gradient(135deg,#FF6B8B,#FFA86B);">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(10,7,6,.82));"></div>
+        <div onClick="{{ openNP }}" class="pressable" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:8px;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;" title="Expand full screen">{{ icExpandSm }}</div>
+        <div style="position:absolute;left:16px;right:16px;bottom:14px;">
+          <div style="font-family:'Bricolage Grotesque';font-weight:800;font-size:19px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Midnight Coast</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Halsey Lane</div>
+        </div>
+      </div>
+      <div style="padding:14px 16px 16px;">
+        <div style="height:4px;border-radius:2px;background:rgba(255,255,255,.16);position:relative;margin-bottom:6px;"><div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:linear-gradient(90deg,#FFB35C,#FF6B5C);border-radius:2px;"></div><div style="position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:#fff;"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:rgba(255,255,255,.5);margin-bottom:8px;">1:42<span>3:58</span></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:22px;color:rgba(255,255,255,.85);">
+          {{ icShuffle }}{{ icPrev }}
+          <div onClick="{{ togglePlay }}" class="pressable" style="width:46px;height:46px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#1a1008;cursor:pointer;">{{ playIcon }}</div>
+          {{ icNext }}{{ icRepeat }}
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== POP-OUT LYRICS / TRANSCRIPTION WINDOW ===== -->
+  <sc-if value="{{ lyricsOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:26px;bottom:26px;z-index:60;width:360px;height:480px;border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#2a1518,#140f0d 70%);box-shadow:0 24px 60px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;">
+      <div style="height:30px;flex:none;display:flex;align-items:center;padding:0 12px;gap:7px;-webkit-app-region:drag;">
+        <div style="width:11px;height:11px;border-radius:50%;background:#ff5f57;"></div>
+        <div style="width:11px;height:11px;border-radius:50%;background:#febc2e;"></div>
+        <div style="width:11px;height:11px;border-radius:50%;background:#28c840;"></div>
+        <div style="flex:1;text-align:center;font-size:11px;font-weight:600;color:rgba(255,255,255,.45);">Lyrics</div>
+        <div class="pressable" style="-webkit-app-region:no-drag;color:rgba(255,255,255,.5);cursor:pointer;" title="Pin">{{ icPin }}</div>
+        <div onClick="{{ closeLyrics }}" class="pressable" style="-webkit-app-region:no-drag;color:rgba(255,255,255,.5);cursor:pointer;" title="Close">{{ icMiniClose }}</div>
+      </div>
+      <div style="padding:10px 22px 14px;display:flex;align-items:center;gap:12px;flex:none;">
+        <div style="width:46px;height:46px;border-radius:9px;flex:none;background:linear-gradient(135deg,#FF6B8B,#FFA86B);"></div>
+        <div style="min-width:0;"><div style="font-weight:700;font-size:15px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Midnight Coast</div><div style="font-size:12px;color:rgba(255,255,255,.6);">Halsey Lane</div></div>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:8px 22px 24px;display:flex;flex-direction:column;gap:15px;">
+        <sc-for list="{{ lyrics }}" as="l" hint-placeholder-count="9">
+          <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:{{ l.miniSize }};line-height:1.22;color:{{ l.color }};letter-spacing:-.01em;cursor:pointer;">{{ l.text }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== RIGHT-CLICK CONTEXT MENU ===== -->
+  <sc-if value="{{ menu }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeMenu }}" onContextMenu="{{ closeMenu }}" style="position:fixed;inset:0;z-index:70;">
+      <div onClick="{{ stopProp }}" style="position:absolute;left:{{ menuX }}px;top:{{ menuY }}px;width:236px;background:var(--surface);border:1px solid var(--border);border-radius:13px;box-shadow:0 18px 44px rgba(0,0,0,.3);padding:6px;">
+        <div style="display:flex;align-items:center;gap:11px;padding:8px 10px 10px;border-bottom:1px solid var(--border);margin-bottom:6px;">
+          <div style="width:38px;height:38px;border-radius:7px;flex:none;background:linear-gradient(135deg,#FF6B8B,#FFA86B);"></div>
+          <div style="min-width:0;"><div style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ menuSong.title }}</div><div style="font-size:12px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ menuSong.artist }}</div></div>
+        </div>
+        <sc-for list="{{ menuGroups }}" as="grp" hint-placeholder-count="4">
+          <div style="border-top:1px solid {{ grp.firstBorder }};padding-top:{{ grp.pad }};margin-top:{{ grp.pad }};">
+            <sc-for list="{{ grp.items }}" as="it" hint-placeholder-count="3">
+              <div class="navitem" onClick="{{ it.action }}" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:500;color:var(--text);">
+                <span style="color:var(--text-2);display:flex;">{{ it.icon }}</span>
+                <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ it.label }}</span>
+                <sc-if value="{{ it.chevron }}" hint-placeholder-val="{{ false }}"><span style="color:var(--text-3);display:flex;">{{ icChevron }}</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Amber&quot;,&quot;Coral&quot;,&quot;Rose&quot;,&quot;Gold&quot;],&quot;default&quot;:&quot;Amber&quot;,&quot;tsType&quot;:&quot;'Amber' | 'Coral' | 'Rose' | 'Gold'&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.rootRef = React.createRef();
+    this.accents = {
+      Amber:{light:'#E2622E',lightSoft:'rgba(226,98,46,.12)',dark:'#FF9A5C',darkSoft:'rgba(255,138,76,.14)',grad:'linear-gradient(135deg,#FFB35C,#FF6B5C)'},
+      Coral:{light:'#E0463E',lightSoft:'rgba(224,70,62,.12)',dark:'#FF7A6B',darkSoft:'rgba(255,122,107,.15)',grad:'linear-gradient(135deg,#FF8A6B,#FF4E5C)'},
+      Rose:{light:'#D2456A',lightSoft:'rgba(210,69,106,.12)',dark:'#FF8AB0',darkSoft:'rgba(255,138,176,.15)',grad:'linear-gradient(135deg,#FF8AB0,#E84E7C)'},
+      Gold:{light:'#B5851A',lightSoft:'rgba(181,133,26,.14)',dark:'#F2C24E',darkSoft:'rgba(242,194,78,.16)',grad:'linear-gradient(135deg,#FFD27A,#F2A93E)'},
+    };
+    this.state = {
+      screen:'home',
+      dark: props.theme==='dark',
+      accent: this.accents[props.accent]?props.accent:'Amber',
+      libTab:'Playlists',
+      npOpen:false,
+      miniOpen:false,
+      lyricsOpen:false,
+      playing:true,
+      detailTitle:'Late Night Drive',
+      themePref: props.theme==='dark'?'dark':'light',
+      menu:null, menuView:'main',
+      sw:{pureBlack:false,hideExplicit:false,lrclib:true,kugou:true,skipSilence:false,normalize:true,persistentQueue:true,autoLoadMore:true,stopOnClose:false,crossfade:true,gapless:true,pauseHistory:false,pauseSearch:false,autoDownload:true},
+      en:{audioQuality:'Auto',textAlign:'Center',sliderStyle:'Default',gridSize:'Small'},
+    };
+  }
+  componentDidMount(){ this.applyTheme(); }
+  openMenu(e,song){ e.preventDefault(); const x=Math.min(e.clientX, window.innerWidth-244); const y=Math.min(e.clientY, window.innerHeight-410); this.setState({menu:{x,y,song},menuView:'main'}); }
+  closeMenu(){ this.setState({menu:null,menuView:'main'}); }
+  toggleSet(k){ this.setState(s=>({sw:{...s.sw,[k]:!s.sw[k]}})); }
+  setEnum(k,v){ this.setState(s=>({en:{...s.en,[k]:v}})); }
+  setThemePref(p){ const dark = p==='auto' ? (window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches) : p==='dark'; this.setState({themePref:p, dark}, ()=>this.applyTheme()); }
+  applyTheme(){
+    const el=this.rootRef.current; if(!el) return;
+    const dark=this.state.dark;
+    const a=this.accents[this.state.accent]||this.accents.Amber;
+    const t = dark
+      ? {bg:'#141210',panel:'#100e0c',surface:'#1c1917',s2:'#252119',border:'rgba(255,255,255,.07)',border2:'rgba(255,255,255,.05)',text:'#f5f1ea',text2:'#a8a098',text3:'#6f675f',shadow:'rgba(0,0,0,.5)',scroll:'rgba(200,190,180,.18)',scrollh:'rgba(200,190,180,.32)',accent:a.dark,accentSoft:a.darkSoft}
+      : {bg:'#faf7f2',panel:'#f1ece3',surface:'#ffffff',s2:'#f4efe7',border:'rgba(0,0,0,.07)',border2:'rgba(0,0,0,.05)',text:'#2a2620',text2:'#6b655e',text3:'#a59d94',shadow:'rgba(0,0,0,.13)',scroll:'rgba(140,130,120,.35)',scrollh:'rgba(140,130,120,.55)',accent:a.light,accentSoft:a.lightSoft};
+    const S=(k,v)=>el.style.setProperty(k,v);
+    S('--bg',t.bg);S('--panel',t.panel);S('--surface',t.surface);S('--surface-2',t.s2);
+    S('--border',t.border);S('--border-2',t.border2);S('--text',t.text);S('--text-2',t.text2);
+    S('--text-3',t.text3);S('--shadow',t.shadow);S('--scroll',t.scroll);S('--scroll-h',t.scrollh);
+    S('--accent',t.accent);S('--accent-soft',t.accentSoft);S('--accent-grad',a.grad);
+  }
+  go(s){ this.setState({screen:s, npOpen:false}); }
+  openDetail(title){ this.setState({screen:'detail', detailTitle:title, npOpen:false}); }
+  setTheme(dark){ this.setState({dark}, ()=>this.applyTheme()); }
+  setAccent(name){ this.setState({accent:name}, ()=>this.applyTheme()); }
+
+  ic(path,size,sw){
+    return React.createElement('svg',{width:size||20,height:size||20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:sw||2,strokeLinecap:'round',strokeLinejoin:'round',style:{flex:'none',display:'block'}},
+      (Array.isArray(path)?path:[path]).map((d,i)=>React.createElement('path',{key:i,d})));
+  }
+  fic(children,size){ return React.createElement('svg',{width:size||20,height:size||20,viewBox:'0 0 24 24',fill:'currentColor',style:{flex:'none',display:'block'}}, children); }
+
+  renderVals(){
+    const g=(a)=>`linear-gradient(135deg,${a})`;
+    const A=[g('#FF8A5B,#FFC15B'),g('#6C8CFF,#9B6CFF'),g('#2BC4A0,#7BE0C0'),g('#FF6B8B,#FFA86B'),g('#3A3A5C,#7A6CFF'),g('#E8A87C,#C38D5F'),g('#5BC0FF,#5B8AFF'),g('#F26B8A,#7A3A5C'),g('#8AC15B,#3A8A5C'),g('#FFC15B,#FF6B5C'),g('#9B6CFF,#FF6B8B'),g('#3A8A8A,#7BE0C0')];
+    const open=(t)=>()=>this.openDetail(t);
+    const noop=()=>{};
+
+    // icons
+    const search=this.ic(['M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z','m21 21-4.3-4.3'],18);
+    const home=this.ic(['M3 11.5 12 4l9 7.5','M5.5 9.8V20h13V9.8'],19);
+    const explore=this.ic(['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z','m15.5 8.5-2.2 5.3-5.3 2.2 2.2-5.3 5.3-2.2z'],19);
+    const library=this.ic(['M4 19V6','M9.5 19V5','M15 19l4.5-13','M15 6l4.5 0'],19);
+    const dlIcon=this.ic(['M12 3v11','m7.5 10 4.5 4.5 4.5-4.5','M5 20h14'],19);
+    const settings=this.ic(['M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z','M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.3 6.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V2.8a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'],19);
+
+    const navData=[
+      {key:'home',label:'Home',icon:home},
+      {key:'search',label:'Search',icon:search},
+      {key:'explore',label:'Explore',icon:explore},
+      {key:'library',label:'Library',icon:library},
+      {key:'downloads',label:'Downloads',icon:dlIcon},
+      {key:'settings',label:'Settings',icon:settings},
+    ];
+    const nav=navData.map(n=>{
+      const active=this.state.screen===n.key || (n.key==='library'&&this.state.screen==='detail');
+      return {label:n.label, icon:n.icon, go:()=>this.go(n.key),
+        color: active?'var(--accent)':'var(--text-2)',
+        bg: active?'var(--surface)':'transparent',
+        shadow: active?'0 1px 3px var(--shadow)':'none'};
+    });
+
+    const playlists=[
+      {title:'Liked Songs',sub:'842 songs',art:g('#7A6CFF,#FF6B8B'),open:open('Liked Songs')},
+      {title:'Late Night Drive',sub:'Playlist · Kaz',art:A[0],open:open('Late Night Drive')},
+      {title:'Focus Flow',sub:'Playlist · Kaz',art:A[2],open:open('Focus Flow')},
+      {title:'Golden Hour',sub:'Playlist · Kaz',art:A[5],open:open('Golden Hour')},
+      {title:'Rainy Days',sub:'Playlist · Kaz',art:A[4],open:open('Rainy Days')},
+      {title:'Sunday Coffee',sub:'Playlist · Kaz',art:A[9],open:open('Sunday Coffee')},
+      {title:'Deep Cuts',sub:'Playlist · Kaz',art:A[7],open:open('Deep Cuts')},
+    ];
+
+    const quickPicks=[
+      {title:'Liked Songs',art:g('#7A6CFF,#FF6B8B'),open:open('Liked Songs')},
+      {title:'Daily Mix 1',art:A[0],open:open('Daily Mix 1')},
+      {title:'Discover Weekly',art:A[2],open:open('Discover Weekly')},
+      {title:'Chill Lofi Beats',art:A[5],open:open('Chill Lofi Beats')},
+      {title:'2000s Throwback',art:A[7],open:open('2000s Throwback')},
+      {title:'New Releases',art:A[8],open:open('New Releases')},
+    ];
+    const madeForYou=[
+      {title:'Daily Mix 1',sub:'Halsey Lane, Norah Vale and more',art:A[0],open:open('Daily Mix 1')},
+      {title:'Discover Weekly',sub:'Your weekly mixtape of fresh finds',art:A[2],open:open('Discover Weekly')},
+      {title:'Golden Hour',sub:'Warm indie & soul for the evening',art:A[5],open:open('Golden Hour')},
+      {title:'Deep Focus',sub:'Ambient instrumental concentration',art:A[4],open:open('Deep Focus')},
+      {title:'On Repeat',sub:'Songs you can\u2019t stop playing',art:A[10],open:open('On Repeat')},
+    ];
+
+    const songData=[
+      ['Midnight Coast','Halsey Lane','Neon Tide','3:58'],
+      ['Paper Planes','Norah Vale','Quiet Light','4:12'],
+      ['Golden','The Idle Hours','Coastline','3:21'],
+      ['Velvet Morning','June Carver','Slow Burn','3:45'],
+      ['Hollow','Atlas Bay','Driftwood','4:02'],
+      ['Cinnamon','Norah Vale','Quiet Light','3:33'],
+      ['Lantern','Halsey Lane','Neon Tide','3:50'],
+      ['Riverbed','The Idle Hours','Coastline','4:28'],
+      ['Embers','June Carver','Slow Burn','3:17'],
+      ['Tidal','Atlas Bay','Driftwood','3:09'],
+    ];
+    const mkSongs=(arr)=>arr.map((s,i)=>{ const o={n:i+1,title:s[0],artist:s[1],album:s[2],dur:s[3],art:A[(i+1)%A.length]}; o.play=()=>this.setState({playing:true}); o.menu=(e)=>this.openMenu(e,o); return o; });
+    const recentSongs=mkSongs(songData.slice(0,6));
+    const downloads=mkSongs(songData.slice(0,8));
+    const detailTracks=mkSongs(songData).map((s,i)=>({...s, date:['2 days ago','5 days ago','1 week ago','2 weeks ago','3 weeks ago','Mar 12','Mar 8','Feb 28','Feb 20','Feb 11'][i]}));
+
+    const recentSearches=[
+      {label:'Halsey Lane',art:A[0]},{label:'Lo-fi beats',art:A[2]},{label:'Norah Vale',art:A[3]},{label:'80s Synthwave',art:A[4]},{label:'Jazz Cafe',art:A[5]},
+    ];
+    const genreNames=['Pop','Hip-Hop','Rock','Indie','Electronic','Jazz','Classical','R&B','Lo-fi','Ambient','Metal','Folk'];
+    const genres=genreNames.map((label,i)=>({label,art:A[i%A.length]}));
+
+    const newReleases=[
+      {title:'Coastline',sub:'The Idle Hours',art:A[2],open:open('Coastline')},
+      {title:'Slow Burn',sub:'June Carver',art:A[5],open:open('Slow Burn')},
+      {title:'Driftwood',sub:'Atlas Bay',art:A[4],open:open('Driftwood')},
+      {title:'Neon Tide',sub:'Halsey Lane',art:A[3],open:open('Neon Tide')},
+      {title:'Quiet Light',sub:'Norah Vale',art:A[7],open:open('Quiet Light')},
+    ];
+    const charts=[
+      {title:'Top 50 — Global',sub:'Updated daily',art:g('#FF6B5C,#FFB35C')},
+      {title:'Viral 50',sub:'Trending now',art:g('#7A6CFF,#FF6B8B')},
+      {title:'New Music Friday',sub:'This week\u2019s drops',art:A[2]},
+      {title:'Indie Rising',sub:'Underground picks',art:A[8]},
+    ];
+
+    // Library tabs + items
+    const libTabsData=['Playlists','Albums','Artists','Podcasts','Songs'];
+    const libTabs=libTabsData.map(t=>{
+      const on=this.state.libTab===t;
+      return {label:t, set:()=>this.setState({libTab:t}),
+        bg:on?'var(--accent)':'var(--surface)', color:on?'#fff':'var(--text)', border:on?'var(--accent)':'var(--border)'};
+    });
+    const tab=this.state.libTab;
+    let libItems;
+    if(tab==='Artists'){
+      libItems=['Halsey Lane','Norah Vale','The Idle Hours','June Carver','Atlas Bay'].map((t,i)=>({title:t,sub:'Artist',art:A[i%A.length],radius:'50%',align:'center',open:open(t)}));
+    } else if(tab==='Albums'){
+      libItems=newReleases.concat(newReleases).slice(0,10).map((m,i)=>({title:m.title,sub:m.sub,art:A[i%A.length],radius:'10px',align:'left',open:m.open}));
+    } else if(tab==='Podcasts'){
+      libItems=[['The Midnight Hour','Nocturne Media'],['Sound & Static','Halsey Lane'],['Liner Notes','Atlas Bay Studio'],['Off the Record','June Carver'],['Frequencies','Neon Tide FM'],['Deep Listening','The Idle Hours']].map((p,i)=>({title:p[0],sub:p[1],art:A[i%A.length],radius:'14px',align:'left',open:open(p[0])}));
+    } else if(tab==='Songs'){
+      libItems=mkSongs(songData).map((s,i)=>({title:s.title,sub:s.artist,art:A[i%A.length],radius:'10px',align:'left',open:open(s.album)}));
+    } else {
+      libItems=playlists.map((p,i)=>({title:p.title,sub:p.sub,art:p.art,radius:'10px',align:'left',open:p.open}));
+    }
+
+    // Settings
+    const settingsRows=[
+      {title:'Crossfade',sub:'Smoothly blend song transitions',on:true},
+      {title:'Gapless playback',sub:'No silence between tracks',on:true},
+      {title:'Skip silence',sub:'Trim quiet intros & outros',on:false},
+      {title:'Normalize volume',sub:'Even loudness across tracks',on:true},
+    ].map((r,i,arr)=>({title:r.title,sub:r.sub, track:r.on?'var(--accent)':'var(--surface-2)', knobSide:r.on?'right':'left', border:i===arr.length-1?'transparent':'var(--border)'}));
+
+    const accentSwatches=Object.keys(this.accents).map(name=>{
+      const sel=this.state.accent===name;
+      return {color:this.accents[name].grad, set:()=>this.setAccent(name), ring: sel?'var(--accent)':'transparent'};
+    });
+
+    // lyrics
+    const lyrics=[
+      {text:'City lights bleed in the rain',size:'30px',miniSize:'18px',color:'rgba(255,255,255,.28)'},
+      {text:'Engine humming low and slow',size:'30px',miniSize:'18px',color:'rgba(255,255,255,.28)'},
+      {text:'Driving down the midnight coast',size:'42px',miniSize:'23px',color:'#FFB98A'},
+      {text:'Headlights chasing yesterday',size:'30px',miniSize:'18px',color:'rgba(255,255,255,.28)'},
+      {text:'And I can\u2019t let go',size:'30px',miniSize:'18px',color:'rgba(255,255,255,.28)'},
+      {text:'Of the way you said my name',size:'30px',miniSize:'18px',color:'rgba(255,255,255,.18)'},
+      {text:'Under all that golden glow',size:'30px',miniSize:'18px',color:'rgba(255,255,255,.18)'},
+      {text:'The radio plays our song',size:'30px',miniSize:'18px',color:'rgba(255,255,255,.18)'},
+      {text:'And the night just carries on',size:'30px',miniSize:'18px',color:'rgba(255,255,255,.18)'},
+    ];
+
+    // theme toggle visuals (settings segmented)
+    const dark=this.state.dark;
+    const greetingHour=new Date().getHours();
+    const greeting = greetingHour<12?'Good morning':greetingHour<18?'Good afternoon':'Good evening';
+
+    // ---- settings helpers ----
+    const tog=(k,label,sub)=>({label,sub,on:this.state.sw[k], track:this.state.sw[k]?'var(--accent)':'var(--surface-2)', knob:this.state.sw[k]?'right':'left', toggle:()=>this.toggleSet(k)});
+    const bd=(a)=>a.map((r,i)=>({...r,border:i===a.length-1?'transparent':'var(--border)'}));
+    const seg=(k,opts)=>opts.map(o=>({label:o, set:()=>this.setEnum(k,o), bg:this.state.en[k]===o?'var(--surface)':'transparent', color:this.state.en[k]===o?'var(--accent)':'var(--text-2)', shadow:this.state.en[k]===o?'0 1px 3px var(--shadow)':'none'}));
+    const themePref=this.state.themePref;
+    const themeSeg=['Light','Dark','Auto'].map(o=>{ const v=o.toLowerCase(); return {label:o, set:()=>this.setThemePref(v), bg:themePref===v?'var(--surface)':'transparent', color:themePref===v?'var(--accent)':'var(--text-2)', shadow:themePref===v?'0 1px 3px var(--shadow)':'none'}; });
+    const appearanceToggles=bd([tog('pureBlack','Pure black','True-black backgrounds in dark mode')]);
+    const contentToggles=bd([tog('hideExplicit','Hide explicit content','Filter out tracks marked explicit'),tog('lrclib','LrcLib lyrics','Fetch time-synced lyrics from LrcLib'),tog('kugou','KuGou lyrics','Fallback lyrics provider')]);
+    const playerAudioToggles=bd([tog('skipSilence','Skip silence','Trim silent intros & outros'),tog('normalize','Audio normalization','Even out loudness across tracks')]);
+    const queueToggles=bd([tog('persistentQueue','Persistent queue','Restore your queue on relaunch'),tog('autoLoadMore','Auto-load more','Keep the queue topped up automatically'),tog('crossfade','Crossfade','Blend the end of one song into the next'),tog('gapless','Gapless playback','No silence between tracks'),tog('stopOnClose','Stop on window close','Stop playback when the window is closed')]);
+    const privacyToggles=bd([tog('pauseHistory','Pause listening history','Don\u2019t save what you play'),tog('pauseSearch','Pause search history','Don\u2019t save your searches')]);
+    const audioQualitySeg=seg('audioQuality',['Auto','High','Low']);
+    const textAlignSeg=seg('textAlign',['Center','Sided']);
+    const sliderStyleSeg=seg('sliderStyle',['Default','Squiggly']);
+    const gridSizeSeg=seg('gridSize',['Small','Big']);
+
+    // ---- context menu ----
+    const mi=(icon,label,action,chevron)=>({icon,label,action:action||(()=>this.closeMenu()),chevron:!!chevron});
+    const song=this.state.menu?this.state.menu.song:{album:'',artist:''};
+    const mPlay=this.fic(React.createElement('path',{d:'M8 5v14l11-7z'}),17);
+    const mNext=this.ic(['M5 7h9','M5 12h9','M5 17h6','M16 8v8','M16 8l4 4-4 4'],17);
+    const mQueue=this.ic(['M4 7h11','M4 12h11','M4 17h7','M18 13v6','M18 13l3 1.5-3 1.5'],17);
+    const mAdd=this.ic(['M4 7h12','M4 12h8','M4 17h8','M17 13v6','M14 16h6'],17);
+    const mHeart=this.ic('M12 20s-6.5-4.2-9-8.3C1.4 9 2.7 5.8 6 5.8c1.9 0 3.1 1.1 4 2.2.9-1.1 2.1-2.2 4-2.2 3.3 0 4.6 3.2 3 5.9-2.5 4.1-9 8.3-9 8.3z',17);
+    const mRadio=this.ic(['M12 12a2 2 0 1 0 0-.01','M8.5 8.5a5 5 0 0 0 0 7','M15.5 8.5a5 5 0 0 1 0 7','M6 6a8.5 8.5 0 0 0 0 12','M18 6a8.5 8.5 0 0 1 0 12'],17);
+    const mAlbum=this.ic(['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z','M12 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z'],17);
+    const mArtist=this.ic(['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z','M5 20a7 7 0 0 1 14 0'],17);
+    const mDl=this.ic(['M12 4v10','m8 11 4 4 4-4','M5 20h14'],17);
+    const mShare=this.ic(['M16 6l-4-4-4 4','M12 2v13','M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7'],17);
+    let menuGroups;
+    if(this.state.menuView==='playlists'){
+      menuGroups=[
+        {first:true, items:[ mi(this.ic('M15 18l-6-6 6-6',17),'Back to menu',()=>this.setState({menuView:'main'})) ]},
+        {first:false, items:[ mi(this.ic(['M12 5v14','M5 12h14'],17),'New playlist') ].concat(
+          playlists.slice(0,5).map(p=>mi(this.ic(['M9 18V7l9-2v11','M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z','M18 16a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z'],17), p.title)) )},
+      ];
+    } else {
+      menuGroups=[
+        {first:true, items:[ mi(mPlay,'Play'), mi(mNext,'Play next'), mi(mQueue,'Add to queue') ]},
+        {first:false, items:[ mi(mAdd,'Add to playlist',()=>this.setState({menuView:'playlists'}),true), mi(mHeart,'Save to Liked Songs'), mi(mRadio,'Start radio · songs like this') ]},
+        {first:false, items:[ mi(mAlbum,'Go to album',()=>{ this.openDetail(song.album||'Album'); this.closeMenu(); }), mi(mArtist,'Go to artist',()=>{ this.openDetail(song.artist||'Artist'); this.closeMenu(); }) ]},
+        {first:false, items:[ mi(mDl,'Download'), mi(mShare,'Share') ]},
+      ];
+    }
+
+    const playIcon = this.state.playing
+      ? this.fic([React.createElement('rect',{key:'a',x:6,y:5,width:4,height:14,rx:1}),React.createElement('rect',{key:'b',x:14,y:5,width:4,height:14,rx:1})],20)
+      : this.fic(React.createElement('path',{d:'M7 4v16l13-8z'}),20);
+    const playIconLg = this.state.playing
+      ? this.fic([React.createElement('rect',{key:'a',x:6,y:5,width:4,height:14,rx:1}),React.createElement('rect',{key:'b',x:14,y:5,width:4,height:14,rx:1})],26)
+      : this.fic(React.createElement('path',{d:'M7 4v16l13-8z'}),26);
+
+    const prev=this.fic([React.createElement('path',{key:'a',d:'M6 5v14'}),React.createElement('path',{key:'b',d:'M20 5 9 12l11 7V5z'})],20);
+    const next=this.fic([React.createElement('path',{key:'a',d:'M18 5v14'}),React.createElement('path',{key:'b',d:'M4 5l11 7L4 19V5z'})],20);
+    const shuffle=this.ic(['M16 3h5v5','M21 3l-7 7','M3 21l6-6','M3 3l7 7','M16 21h5v-5','M14 14l7 7'],18);
+    const repeat=this.ic(['M17 2l4 4-4 4','M3 11V9a4 4 0 0 1 4-4h14','M7 22l-4-4 4-4','M21 13v2a4 4 0 0 1-4 4H3'],18);
+    const sz=(el,s)=>React.cloneElement(el,{width:s,height:s});
+
+    return {
+      rootRef:this.rootRef,
+      // screen flags
+      isHome:this.state.screen==='home', isSearch:this.state.screen==='search', isExplore:this.state.screen==='explore',
+      isLibrary:this.state.screen==='library', isDetail:this.state.screen==='detail', isDownloads:this.state.screen==='downloads',
+      isSettings:this.state.screen==='settings', isQueue:this.state.screen==='queue', npOpen:this.state.npOpen, miniOpen:this.state.miniOpen, lyricsOpen:this.state.lyricsOpen,
+      queueTracks: mkSongs(songData.slice(1)).concat(mkSongs(songData.slice(2,6))),
+      eqBars: React.createElement(React.Fragment,null,[0,1,2,3].map(i=>React.createElement('div',{key:i,style:{width:'3px',borderRadius:'2px',background:'var(--accent)',height:'100%',animation:`eqb 0.9s ease-in-out ${i*0.18}s infinite`}}))),
+      icDrag:this.ic(['M9 6h.01','M9 12h.01','M9 18h.01','M15 6h.01','M15 12h.01','M15 18h.01'],18),
+      // data
+      nav, playlists, quickPicks, madeForYou, recentSongs, downloads, recentSearches, genres, newReleases, charts,
+      libTabs, libItems, settingsRows, accentSwatches, lyrics, greeting,
+      detailTitle:this.state.detailTitle, detailArt:A[3],
+      detailDesc:'The slow-burn nocturne mix. Warm synths, lonely guitars, and headlights on an empty highway.',
+      detailTracks,
+      // handlers
+      goSearch:()=>this.go('search'), goQueue:()=>this.go('queue'),
+      openNP:()=>this.setState({npOpen:true}), closeNP:()=>this.setState({npOpen:false}),
+      openMini:()=>this.setState({miniOpen:true}), closeMini:()=>this.setState({miniOpen:false}),
+      openLyrics:()=>this.setState({lyricsOpen:true}), closeLyrics:()=>this.setState({lyricsOpen:false}),
+      openLyricsStop:(e)=>{ e.stopPropagation(); this.setState({lyricsOpen:true}); },
+      togglePlay:()=>this.setState(s=>({playing:!s.playing})),
+      toggleTheme:()=>this.setThemePref(this.state.dark?'light':'dark'),
+      // settings + menu
+      themeSeg, contentToggles, playerAudioToggles, queueToggles, privacyToggles, appearanceToggles,
+      audioQualitySeg, textAlignSeg, sliderStyleSeg, gridSizeSeg,
+      defaultTabVal:'Home', langVal:'English', countryVal:'United States',
+      menu:this.state.menu, menuX:this.state.menu?this.state.menu.x:0, menuY:this.state.menu?this.state.menu.y:0,
+      menuSong:this.state.menu?this.state.menu.song:{title:'',artist:''},
+      menuGroups: menuGroups.map(grp=>({...grp, firstBorder: grp.first?'transparent':'var(--border)', pad: grp.first?'0px':'6px'})),
+      closeMenu:()=>this.closeMenu(), stopProp:(e)=>e.stopPropagation(),
+      icMiniClose:this.ic(['M6 6l12 12','M18 6 6 18'],15),
+      // icons
+      icSearch:search, icBack:this.ic('M15 6l-6 6 6 6',18), icFwd:this.ic('M9 6l6 6-6 6',18),
+      icLogo:this.fic(React.createElement('path',{d:'M8 18.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm0 0V6.2l9-2v9.3m0 0a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z'}),18),
+      icPlus:this.ic(['M12 5v14','M5 12h14'],18), icTheme: dark?this.ic(['M12 3v2','M12 19v2','M5 5l1.5 1.5','M17.5 17.5 19 19','M3 12h2','M19 12h2','M5 19l1.5-1.5','M17.5 6.5 19 5','M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'],18):this.ic('M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8z',18),
+      icPlay:this.fic(React.createElement('path',{d:'M7 4v16l13-8z'}),22), icPlaySm:this.fic(React.createElement('path',{d:'M8 5v14l11-7z'}),18), icPlayXs:this.fic(React.createElement('path',{d:'M8 5v14l11-7z'}),14),
+      icHeart:this.fic(React.createElement('path',{d:'M12 21s-7-4.5-9.5-9C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 6.5C19 16.5 12 21 12 21z'}),18),
+      icHeartLg:this.fic(React.createElement('path',{d:'M12 21s-7-4.5-9.5-9C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 6.5C19 16.5 12 21 12 21z'}),26),
+      icDownload:this.ic(['M12 3v12','m7.5 10.5 4.5 4.5 4.5-4.5','M5 20h14'],22),
+      icDownloaded:this.fic(React.createElement('path',{d:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 4.5-4.5 1.4 1.4z'}),18),
+      icMore:this.ic(['M5 12h.01','M12 12h.01','M19 12h.01'],22),
+      icClock:this.ic(['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z','M12 7.5V12l3 2'],16),
+      icChevron:this.ic('M9 6l6 6-6 6',18),
+      icShuffle:shuffle, icRepeat:repeat, icPrev:prev, icNext:next, playIcon, playIconLg,
+      icShuffleLg:sz(shuffle,24), icRepeatLg:sz(repeat,24), icPrevLg:sz(prev,28), icNextLg:sz(next,28),
+      icVolume:this.ic(['M11 5 6 9H3v6h3l5 4V5z','M16 9a4 4 0 0 1 0 6'],19),
+      icQueue:this.ic(['M4 7h11','M4 12h11','M4 17h7','M18 13v6','M18 13l3 1.5-3 1.5'],19),
+      icExpand:this.ic(['M8 3H3v5','M21 16v5h-5','M3 3l7 7','M21 21l-7-7'],18),
+      icExpandSm:this.ic(['M8 3H3v5','M21 16v5h-5'],14),
+      icMini:this.ic(['M15 3h6v6','M10 14 21 3','M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'],17),
+      icPin:this.ic(['M9 4h6l-1 7 3 3v2H7v-2l3-3-1-7z','M12 16v5'],15),
+      icCollapse:this.ic(['M4 9h5V4','M20 15h-5v5','M9 9 3 3','M15 15l6 6'],18),
+    };
+  }
+}
+</script>
+</body>
+</html>

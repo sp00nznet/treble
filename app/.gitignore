@@ -1,0 +1,12 @@
+# dependencies
+node_modules
+dist
+dist-ssr
+
+# tauri / rust
+src-tauri/target
+
+# misc
+.DS_Store
+*.local
+.env

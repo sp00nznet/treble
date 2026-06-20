@@ -1,0 +1,53 @@
+/* ============================================================
+   Treble design tokens — lifted verbatim from the design system.
+   Neutral palette + structural tokens live here.
+   Accent tokens (--accent / --accent-soft / --accent-grad) are set
+   at runtime by applyTheme() in theme.tsx so the accent can be swapped.
+   ============================================================ */
+
+:root {
+  /* light theme (default) */
+  --bg: #faf7f2;
+  --panel: #f1ece3;
+  --surface: #ffffff;
+  --surface-2: #f4efe7;
+  --border: rgba(0, 0, 0, 0.07);
+  --border-2: rgba(0, 0, 0, 0.05);
+  --text: #2a2620;
+  --text-2: #6b655e;
+  --text-3: #a59d94;
+  --shadow: rgba(0, 0, 0, 0.13);
+  --scroll: rgba(140, 130, 120, 0.35);
+
+  /* accent — default Amber/light; overwritten by applyTheme() */
+  --accent: #e2622e;
+  --accent-soft: rgba(226, 98, 46, 0.12);
+  --accent-grad: linear-gradient(135deg, #ffb35c, #ff6b5c);
+
+  /* type */
+  --font-ui: "Hanken Grotesque", system-ui, -apple-system, sans-serif;
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+
+  /* radius / chrome */
+  --r-card: 14px;
+  --r-art: 10px;
+  --r-pill: 20px;
+  --r-row: 9px;
+  --titlebar-h: 46px;
+  --sidebar-w: 230px;
+  --player-w: 300px;
+}
+
+[data-theme="dark"] {
+  --bg: #141210;
+  --panel: #100e0c;
+  --surface: #1c1917;
+  --surface-2: #252119;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-2: rgba(255, 255, 255, 0.05);
+  --text: #f5f1ea;
+  --text-2: #a8a098;
+  --text-3: #6f675f;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --scroll: rgba(200, 190, 180, 0.18);
+}
