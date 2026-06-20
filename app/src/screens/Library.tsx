@@ -1,21 +1,48 @@
-import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Import } from "lucide-react";
 import { useStore } from "../store";
 import { LIBRARY } from "../data/mock";
+import { listPlaylists } from "../lib/api";
+import { isArtUrl, type LibraryItem } from "../types";
 
 const TABS = ["Playlists", "Albums", "Artists", "Podcasts", "Songs"];
 
 export function Library() {
   const { state, dispatch } = useStore();
   const tab = state.libTab;
-  const items = LIBRARY[tab] ?? LIBRARY.Playlists;
+  const [playlists, setPlaylists] = useState<LibraryItem[] | null>(null);
+
+  // Load real playlists from the library DB (incl. anything imported from Spotify).
+  // Refreshes whenever the import modal closes.
+  useEffect(() => {
+    let live = true;
+    listPlaylists()
+      .then((pls) => live && setPlaylists(pls.map((p) => ({ id: p.id, title: p.title, subtitle: p.subtitle, art: p.art }))))
+      .catch(() => live && setPlaylists(null));
+    return () => {
+      live = false;
+    };
+  }, [state.importOpen]);
+
+  const items =
+    tab === "Playlists" && playlists && playlists.length > 0 ? playlists : LIBRARY[tab] ?? LIBRARY.Playlists;
 
   return (
     <div className="screen">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <h1 className="h1" style={{ fontSize: 30 }}>Your Library</h1>
-        <button className="chip active press" style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <Plus size={16} /> New
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            className="chip press"
+            style={{ display: "flex", alignItems: "center", gap: 7 }}
+            onClick={() => dispatch({ type: "setImport", open: true })}
+          >
+            <Import size={16} /> Import from Spotify
+          </button>
+          <button className="chip active press" style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <Plus size={16} /> New
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
@@ -29,7 +56,7 @@ export function Library() {
       <div className="grid-5">
         {items.map((m) => (
           <div key={m.id} className="card" style={{ border: "none", background: "transparent", padding: 0 }} onClick={() => dispatch({ type: "openDetail", id: m.id })}>
-            <div className="art" style={{ background: m.art, borderRadius: m.shape === "circle" ? "50%" : "var(--r-art)", marginBottom: 11 }} />
+            <div className="art" style={{ background: isArtUrl(m.art) ? `center/cover no-repeat url(${m.art})` : m.art, borderRadius: m.shape === "circle" ? "50%" : "var(--r-art)", marginBottom: 11 }} />
             <div className="ellipsis" style={{ fontSize: 14, fontWeight: 700, textAlign: m.shape === "circle" ? "center" : "left" }}>{m.title}</div>
             <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 2, textAlign: m.shape === "circle" ? "center" : "left" }}>{m.subtitle}</div>
           </div>

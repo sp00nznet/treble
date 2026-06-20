@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import { useStore } from "../store";
 import { PLAYLISTS } from "../data/mock";
+import { downloadTrack } from "../lib/api";
 
 /**
  * Right-click context menu for a track. Opens at the cursor (state.menu).
@@ -36,7 +37,7 @@ export function ContextMenu() {
         {view === "main" ? (
           <>
             <Group>
-              <Item icon={<Play size={17} />} label="Play" onClick={close} />
+              <Item icon={<Play size={17} />} label="Play" onClick={() => { dispatch({ type: "play", track: menu.track }); close(); }} />
               <Item icon={<ListPlus size={17} />} label="Play next" onClick={close} />
               <Item icon={<ListMusic size={17} />} label="Add to queue" onClick={close} />
             </Group>
@@ -50,7 +51,7 @@ export function ContextMenu() {
               <Item icon={<User size={17} />} label="Go to artist" onClick={close} />
             </Group>
             <Group divider>
-              <Item icon={<Download size={17} />} label="Download" onClick={close} />
+              <Item icon={<Download size={17} />} label="Download" onClick={() => { void downloadTrack(menu.track); dispatch({ type: "go", screen: "downloads" }); close(); }} />
               <Item icon={<Share2 size={17} />} label="Share" onClick={close} />
             </Group>
           </>

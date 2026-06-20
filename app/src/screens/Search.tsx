@@ -51,7 +51,7 @@ export function Search() {
           }}
         />
         {loading && (
-          <Loader2 size={18} className="spin" style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", color: "var(--text-3)" }} />
+          <Loader2 size={18} className="spin" style={{ position: "absolute", right: 16, top: "calc(50% - 9px)", color: "var(--text-3)" }} />
         )}
       </div>
 

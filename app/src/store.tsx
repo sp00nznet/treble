@@ -20,6 +20,7 @@ interface State {
   lyricsOpen: boolean; // floating lyrics window
   nowPlaying: Track | null;
   menu: { x: number; y: number; track: Track } | null; // right-click context menu
+  importOpen: boolean; // Spotify import modal
 }
 
 type Action =
@@ -34,7 +35,8 @@ type Action =
   | { type: "setMini"; open: boolean }
   | { type: "setLyrics"; open: boolean }
   | { type: "openMenu"; x: number; y: number; track: Track }
-  | { type: "closeMenu" };
+  | { type: "closeMenu" }
+  | { type: "setImport"; open: boolean };
 
 const initial: State = {
   screen: "home",
@@ -48,6 +50,7 @@ const initial: State = {
   lyricsOpen: false,
   nowPlaying: null,
   menu: null,
+  importOpen: false,
 };
 
 function reducer(s: State, a: Action): State {
@@ -76,6 +79,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, menu: { x: a.x, y: a.y, track: a.track } };
     case "closeMenu":
       return { ...s, menu: null };
+    case "setImport":
+      return { ...s, importOpen: a.open };
     default:
       return s;
   }

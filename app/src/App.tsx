@@ -7,6 +7,7 @@ import { NowPlaying } from "./components/NowPlaying";
 import { ContextMenu } from "./components/ContextMenu";
 import { MiniPlayer, LyricsWindow } from "./components/FloatingWindows";
 import { AudioEngine } from "./components/AudioEngine";
+import { ImportModal } from "./components/ImportModal";
 import { Home } from "./screens/Home";
 import { Search } from "./screens/Search";
 import { Explore } from "./screens/Explore";
@@ -56,6 +57,7 @@ export function App() {
       <MiniPlayer />
       <LyricsWindow />
       <ContextMenu />
+      <ImportModal />
     </div>
   );
 }
