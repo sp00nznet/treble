@@ -234,6 +234,28 @@ export async function getPlaylist(id: string): Promise<CorePlaylist | null> {
   return invoke<CorePlaylist | null>("get_playlist", { id });
 }
 
+export async function deletePlaylist(id: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("delete_playlist", { id });
+}
+
+export async function renamePlaylist(id: string, name: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("rename_playlist", { id, name });
+}
+
+/** Path to the on-disk log file (for diagnostics). */
+export async function getLogPath(): Promise<string | null> {
+  if (!isTauri()) return null;
+  return invoke<string | null>("get_log_path");
+}
+
+/** Write a line into the app log from the frontend (playback events, errors). */
+export function uiLog(msg: string): void {
+  if (!isTauri()) return;
+  void invoke("ui_log", { msg }).catch(() => {});
+}
+
 export async function listDownloads(): Promise<Track[]> {
   if (!isTauri()) return TRACKS.filter((t) => t.downloaded);
   return invoke<Track[]>("list_downloads");

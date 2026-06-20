@@ -64,8 +64,15 @@ export function NowPlayingPanel() {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, color: "var(--text-3)" }}>
         <Volume2 size={19} className="press" />
-        <div style={{ flex: 1, margin: "0 10px", height: 4, borderRadius: 2, background: "var(--surface-2)", position: "relative" }}>
-          <div style={{ position: "absolute", inset: "0 35% 0 0", background: "var(--text-3)", borderRadius: 2 }} />
+        <div
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            dispatch({ type: "setVolume", volume: (e.clientX - r.left) / r.width });
+          }}
+          style={{ flex: 1, margin: "0 10px", height: 4, borderRadius: 2, background: "var(--surface-2)", position: "relative", cursor: "pointer" }}
+          title="Volume"
+        >
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${state.volume * 100}%`, background: "var(--text-3)", borderRadius: 2 }} />
         </div>
         <ListMusic size={19} className="press" onClick={() => dispatch({ type: "go", screen: "queue" })} />
       </div>

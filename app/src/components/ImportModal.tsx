@@ -52,6 +52,7 @@ export function ImportModal() {
       setResult(e.playlist);
       setSummary({ matched: e.matched, total: e.total, skipped: e.skipped });
       setPhase("done");
+      dispatch({ type: "refreshLibrary" }); // refresh sidebar/library counts
     }));
     add(listen<null>("import:cancelled", () => live && setPhase("input")));
     return () => {
@@ -121,6 +122,7 @@ export function ImportModal() {
       const pl = await saveMatchedPlaylist(name.trim() || "Imported Playlist", tracks);
       setResult(pl);
       setPhase("done");
+      dispatch({ type: "refreshLibrary" });
     } catch {
       setPhase("review");
     }
@@ -144,8 +146,10 @@ export function ImportModal() {
         {phase === "input" && (
           <>
             <p style={{ fontSize: 13, color: "var(--text-2)", margin: "0 0 16px", lineHeight: 1.5 }}>
-              In Spotify, open a playlist, select the tracks (Ctrl/Cmd+A), copy them
-              (Ctrl/Cmd+C), then paste below. We'll find matches on YouTube Music and let you review them.
+              Paste your tracks below. For big playlists, the most reliable way is to export the playlist
+              to CSV with <a href="https://watsonbox.github.io/exportify/" target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>Exportify</a> and
+              paste the CSV here — it has full metadata, so there's no rate-limiting. You can also paste
+              Spotify track links, or plain <i>Title — Artist</i> lines.
             </p>
             {err && (
               <div style={{ background: "var(--surface)", border: "1px solid #e0463e55", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 12.5, color: "var(--text-2)" }}>

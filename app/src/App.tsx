@@ -40,6 +40,18 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [state.menu, state.npOpen, state.lyricsOpen, state.miniOpen, dispatch]);
 
+  // Suppress the webview's native context menu everywhere (the "Save as…" junk).
+  // Track rows still open Treble's own menu via their React onContextMenu handlers.
+  useEffect(() => {
+    const onCtx = (e: MouseEvent) => {
+      const el = e.target as HTMLElement;
+      if (el.closest("input, textarea")) return; // keep it in text fields
+      e.preventDefault();
+    };
+    document.addEventListener("contextmenu", onCtx);
+    return () => document.removeEventListener("contextmenu", onCtx);
+  }, []);
+
   return (
     <div className="app">
       <Titlebar />

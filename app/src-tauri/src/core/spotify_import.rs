@@ -15,6 +15,77 @@
 use crate::core::error::Result;
 use crate::core::models::ParsedTrack;
 
+/// Parse an **Exportify CSV** (github.com/watsonbox/exportify) — a Spotify
+/// playlist exported with full metadata via the Spotify API. This is the reliable
+/// path for big playlists: every track already has title/artist/album/duration, so
+/// there's no per-track Spotify lookup (and no rate-limiting). Returns `None` if
+/// the text isn't a recognizable Exportify CSV.
+pub fn parse_csv(text: &str) -> Option<Vec<ParsedTrack>> {
+    let mut lines = text.lines();
+    let header = lines.next()?;
+    let cols = csv_split(header);
+    let find = |name: &str| cols.iter().position(|c| c.eq_ignore_ascii_case(name));
+    let title_i = find("Track Name")?;
+    let artist_i = find("Artist Name(s)").or_else(|| find("Artist Name"))?;
+    let album_i = find("Album Name");
+    let dur_i = find("Track Duration (ms)").or_else(|| find("Duration (ms)"));
+
+    let mut out = Vec::new();
+    for line in lines {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let f = csv_split(line);
+        let at = |i: usize| f.get(i).cloned().unwrap_or_default();
+        let title = at(title_i);
+        if title.is_empty() {
+            continue;
+        }
+        let dur_ms: u64 = dur_i.map(|i| at(i)).and_then(|s| s.parse().ok()).unwrap_or(0);
+        let duration = if dur_ms > 0 { format!("{}:{:02}", dur_ms / 60000, (dur_ms / 1000) % 60) } else { String::new() };
+        out.push(ParsedTrack {
+            title,
+            artist: at(artist_i),
+            album: album_i.map(at).unwrap_or_default(),
+            duration,
+        });
+    }
+    Some(out)
+}
+
+/// Split one CSV line, honoring quoted fields (incl. escaped `""`).
+fn csv_split(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut cur = String::new();
+    let mut in_q = false;
+    let mut chars = line.chars().peekable();
+    while let Some(c) = chars.next() {
+        if in_q {
+            if c == '"' {
+                if chars.peek() == Some(&'"') {
+                    cur.push('"');
+                    chars.next();
+                } else {
+                    in_q = false;
+                }
+            } else {
+                cur.push(c);
+            }
+        } else {
+            match c {
+                '"' => in_q = true,
+                ',' => {
+                    fields.push(cur.trim().to_string());
+                    cur.clear();
+                }
+                _ => cur.push(c),
+            }
+        }
+    }
+    fields.push(cur.trim().to_string());
+    fields
+}
+
 /// Pull Spotify **track IDs** out of pasted text. Copying tracks in the Spotify
 /// desktop app puts a list of `https://open.spotify.com/track/<id>` URLs (or
 /// `spotify:track:<id>` URIs) on the clipboard — NOT "Title — Artist" text — so
@@ -40,18 +111,37 @@ pub fn extract_track_ids(text: &str) -> Vec<String> {
 }
 
 /// Resolve one Spotify track ID to title/artist/duration via the public embed
-/// page (no auth, no API key). Returns `None` if the page can't be read/parsed.
+/// page (no auth, no API key). Retries with backoff to ride out rate-limiting
+/// (Spotify throttles after a few hundred rapid requests). Returns `None` only
+/// after all attempts fail.
 pub fn resolve_id(id: &str) -> Option<ParsedTrack> {
+    for attempt in 0u64..4 {
+        if attempt > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(300 * attempt));
+        }
+        match fetch_track(id) {
+            Ok(t) => return Some(t),
+            Err(retryable) if !retryable => break, // 404 etc — don't retry
+            Err(_) => continue,
+        }
+    }
+    crate::tlog!("spotify resolve failed: {id}");
+    None
+}
+
+/// Returns Ok(track) or Err(retryable). `retryable` is false for a definitive
+/// "not found" so we don't waste retries.
+fn fetch_track(id: &str) -> std::result::Result<ParsedTrack, bool> {
     let url = format!("https://open.spotify.com/embed/track/{id}");
-    let html = ureq::get(&url)
-        .set("User-Agent", "Mozilla/5.0")
-        .call()
-        .ok()?
-        .into_string()
-        .ok()?;
-    let obj = extract_entity(&html)?;
-    let v: serde_json::Value = serde_json::from_str(&obj).ok()?;
-    let title = v.get("name").or_else(|| v.get("title")).and_then(|x| x.as_str())?.to_string();
+    let resp = ureq::get(&url).set("User-Agent", "Mozilla/5.0").call();
+    let html = match resp {
+        Ok(r) => r.into_string().map_err(|_| true)?,
+        Err(ureq::Error::Status(404, _)) => return Err(false),
+        Err(_) => return Err(true), // 429/5xx/network — retry
+    };
+    let obj = extract_entity(&html).ok_or(true)?;
+    let v: serde_json::Value = serde_json::from_str(&obj).map_err(|_| true)?;
+    let title = v.get("name").or_else(|| v.get("title")).and_then(|x| x.as_str()).ok_or(true)?.to_string();
     let artist = v
         .get("artists")
         .and_then(|a| a.as_array())
@@ -59,7 +149,7 @@ pub fn resolve_id(id: &str) -> Option<ParsedTrack> {
         .unwrap_or_default();
     let dur_ms = v.get("duration").and_then(|d| d.as_u64()).unwrap_or(0);
     let duration = if dur_ms > 0 { format!("{}:{:02}", dur_ms / 60000, (dur_ms / 1000) % 60) } else { String::new() };
-    Some(ParsedTrack { title, artist, album: String::new(), duration })
+    Ok(ParsedTrack { title, artist, album: String::new(), duration })
 }
 
 /// Extract the balanced `{...}` object that follows `"entity":` in the embed page.
@@ -219,5 +309,28 @@ mod tests {
         let t = parse("Title\tArtist\n\nPaper Planes\tNorah Vale");
         assert_eq!(t.len(), 1);
         assert_eq!(t[0].title, "Paper Planes");
+    }
+
+    #[test]
+    fn csv_exportify() {
+        let csv = "\"Track URI\",\"Track Name\",\"Artist Name(s)\",\"Album Name\",\"Track Duration (ms)\"\n\
+                   \"spotify:track:abc\",\"Get Lucky\",\"Daft Punk, Pharrell Williams\",\"Random Access Memories\",\"369000\"";
+        let r = parse_csv(csv).expect("should parse exportify csv");
+        assert_eq!(r.len(), 1);
+        assert_eq!(r[0].title, "Get Lucky");
+        assert_eq!(r[0].artist, "Daft Punk, Pharrell Williams");
+        assert_eq!(r[0].album, "Random Access Memories");
+        assert_eq!(r[0].duration, "6:09");
+    }
+
+    #[test]
+    fn csv_rejects_plain_text() {
+        assert!(parse_csv("Get Lucky — Daft Punk\nHello — Adele").is_none());
+    }
+
+    #[test]
+    fn extract_ids_from_urls() {
+        let ids = extract_track_ids("https://open.spotify.com/track/7cHRys0Lhk9642dLaPUMkm?si=x\nspotify:track:6E48z2ncRLN3BJncBKkmRl");
+        assert_eq!(ids, vec!["7cHRys0Lhk9642dLaPUMkm", "6E48z2ncRLN3BJncBKkmRl"]);
     }
 }

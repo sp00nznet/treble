@@ -44,7 +44,13 @@ pub fn search(query: String) -> CmdResult<Vec<Track>> {
 
 #[tauri::command]
 pub fn resolve_stream(id: String) -> CmdResult<String> {
-    catalog::resolve_stream(&id)
+    crate::tlog!("resolve_stream: {id}");
+    let r = catalog::resolve_stream(&id);
+    match &r {
+        Ok(u) => crate::tlog!("resolve_stream ok ({} chars)", u.len()),
+        Err(e) => crate::tlog!("resolve_stream ERR: {e}"),
+    }
+    r
 }
 
 #[tauri::command]
@@ -70,6 +76,30 @@ pub fn get_playlist(lib: State<Arc<Library>>, id: String) -> CmdResult<Option<Pl
 #[tauri::command]
 pub fn list_downloads(lib: State<Arc<Library>>) -> CmdResult<Vec<Track>> {
     lib.list_downloaded()
+}
+
+/// Path to the on-disk log file (for the Settings "view log" affordance).
+#[tauri::command]
+pub fn get_log_path() -> Option<String> {
+    crate::core::log::path().map(|p| p.to_string_lossy().into_owned())
+}
+
+/// Write a message from the frontend into the log (playback events, errors).
+#[tauri::command]
+pub fn ui_log(msg: String) {
+    crate::tlog!("[ui] {msg}");
+}
+
+#[tauri::command]
+pub fn delete_playlist(lib: State<Arc<Library>>, id: String) -> CmdResult<()> {
+    crate::tlog!("delete_playlist {id}");
+    lib.delete_playlist(&id)
+}
+
+#[tauri::command]
+pub fn rename_playlist(lib: State<Arc<Library>>, id: String, name: String) -> CmdResult<()> {
+    crate::tlog!("rename_playlist {id} -> {name}");
+    lib.rename_playlist(&id, &name)
 }
 
 /// Progress payload while matching imported tracks to the catalog.
@@ -160,15 +190,21 @@ pub fn import_run(app: AppHandle, lib: State<Arc<Library>>, name: String, text: 
 }
 
 fn do_import(app: AppHandle, lib: Arc<Library>, name: String, text: String) {
-    // Spotify's "copy" puts track URLs on the clipboard — resolve those to real
-    // title/artist first; otherwise fall back to parsing "Title — Artist" text.
+    // Best source: an Exportify CSV (full metadata, no per-track lookup). Else
+    // Spotify track URLs (resolve each via the embed page). Else "Title — Artist".
     let ids = spotify_import::extract_track_ids(&text);
-    let parsed = if !ids.is_empty() {
+    let parsed = if let Some(csv) = spotify_import::parse_csv(&text) {
+        crate::tlog!("import start: Exportify CSV with {} tracks", csv.len());
+        csv
+    } else if !ids.is_empty() {
         let n = ids.len();
+        crate::tlog!("import start: {} spotify URLs (resolving via embed)", n);
         let progress = |done: usize| {
             let _ = app.emit("import:progress", ImportProgress { done, total: n, matched: done, current: format!("Reading Spotify… {done}/{n}") });
         };
-        resolve_step(&ids, progress)
+        let r = resolve_step(&ids, progress);
+        crate::tlog!("import: resolved {}/{} tracks from Spotify ({} failed)", r.len(), n, n - r.len());
+        r
     } else {
         spotify_import::parse(&text)
     };
@@ -189,9 +225,11 @@ fn do_import(app: AppHandle, lib: Arc<Library>, name: String, text: String) {
     let per = if review { 4 } else { 1 };
 
     let progress = |done: usize, current: &str| {
-        let _ = app.emit("import:progress", ImportProgress { done, total, matched: done, current: current.to_string() });
+        let _ = app.emit("import:progress", ImportProgress { done, total, matched: done, current: format!("Matching… {current}") });
     };
     let rows = match_step(&parsed, per, progress);
+    let matched_count = rows.iter().filter(|r| !r.candidates.is_empty()).count();
+    crate::tlog!("import: matched {}/{} on YouTube Music", matched_count, total);
 
     if IMPORT_CANCEL.load(Ordering::Relaxed) {
         let _ = app.emit("import:cancelled", ());
@@ -226,7 +264,9 @@ fn do_import(app: AppHandle, lib: Arc<Library>, name: String, text: String) {
 /// Resolve Spotify IDs → metadata, backend-aware: concurrent (default) or sequential.
 #[cfg(feature = "native-catalog")]
 fn resolve_step(ids: &[String], on_progress: impl FnMut(usize)) -> Vec<ParsedTrack> {
-    crate::core::catalog_native::resolve_spotify(ids, 8, &IMPORT_CANCEL, on_progress)
+    // Lower concurrency for Spotify (it rate-limits aggressively); retries in
+    // resolve_id ride out throttling.
+    crate::core::catalog_native::resolve_spotify(ids, 4, &IMPORT_CANCEL, on_progress)
 }
 
 #[cfg(not(feature = "native-catalog"))]

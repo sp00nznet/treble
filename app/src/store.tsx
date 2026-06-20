@@ -27,6 +27,14 @@ interface State {
   pendingSeek: number | null; // UI requested a seek; AudioEngine applies & clears
   sleepEndsAt: number | null; // epoch ms when the sleep timer pauses playback
   libRefresh: number; // bump to force library/detail screens to reload from the DB
+  volume: number; // 0..1, applied to the audio element
+  back: NavEntry[]; // navigation history (back stack)
+  forward: NavEntry[]; // navigation history (forward stack)
+}
+
+interface NavEntry {
+  screen: Screen;
+  detailId: string | null;
 }
 
 type Action =
@@ -47,7 +55,10 @@ type Action =
   | { type: "seek"; secs: number }
   | { type: "seekDone" }
   | { type: "setSleep"; endsAt: number | null }
-  | { type: "refreshLibrary" };
+  | { type: "refreshLibrary" }
+  | { type: "navBack" }
+  | { type: "navForward" }
+  | { type: "setVolume"; volume: number };
 
 const initial: State = {
   screen: "home",
@@ -67,14 +78,28 @@ const initial: State = {
   pendingSeek: null,
   sleepEndsAt: null,
   libRefresh: 0,
+  volume: 1,
+  back: [],
+  forward: [],
 };
 
 function reducer(s: State, a: Action): State {
   switch (a.type) {
     case "go":
-      return { ...s, screen: a.screen };
+      if (a.screen === s.screen && s.screen !== "detail") return s;
+      return { ...s, screen: a.screen, back: [...s.back, { screen: s.screen, detailId: s.detailId }], forward: [] };
     case "openDetail":
-      return { ...s, screen: "detail", detailId: a.id };
+      return { ...s, screen: "detail", detailId: a.id, back: [...s.back, { screen: s.screen, detailId: s.detailId }], forward: [] };
+    case "navBack": {
+      if (s.back.length === 0) return s;
+      const prev = s.back[s.back.length - 1];
+      return { ...s, screen: prev.screen, detailId: prev.detailId, back: s.back.slice(0, -1), forward: [...s.forward, { screen: s.screen, detailId: s.detailId }] };
+    }
+    case "navForward": {
+      if (s.forward.length === 0) return s;
+      const next = s.forward[s.forward.length - 1];
+      return { ...s, screen: next.screen, detailId: next.detailId, forward: s.forward.slice(0, -1), back: [...s.back, { screen: s.screen, detailId: s.detailId }] };
+    }
     case "setThemePref":
       return { ...s, themePref: a.pref };
     case "setAccent":
@@ -114,6 +139,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, sleepEndsAt: a.endsAt };
     case "refreshLibrary":
       return { ...s, libRefresh: s.libRefresh + 1 };
+    case "setVolume":
+      return { ...s, volume: Math.max(0, Math.min(1, a.volume)) };
     default:
       return s;
   }

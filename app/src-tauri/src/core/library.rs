@@ -151,6 +151,21 @@ impl Library {
         Ok(id)
     }
 
+    /// Delete a playlist and its track links.
+    pub fn delete_playlist(&self, id: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM playlist_tracks WHERE playlist_id = ?1", params![id])?;
+        conn.execute("DELETE FROM playlists WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
+    /// Rename a playlist (keeps the id so track links stay intact).
+    pub fn rename_playlist(&self, id: &str, title: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("UPDATE playlists SET title = ?1 WHERE id = ?2", params![title, id])?;
+        Ok(())
+    }
+
     /// Mark a track downloaded (and where its file lives).
     pub fn mark_downloaded(&self, track_id: &str, file_path: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();

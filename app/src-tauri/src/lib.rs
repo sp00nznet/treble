@@ -18,6 +18,8 @@ pub fn run() {
             // The library DB lives in the app data dir and *is* the unit of sync.
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir).ok();
+            core::log::init(data_dir.join("treble.log"));
+            crate::tlog!("treble starting; data dir = {}", data_dir.display());
             let lib = Library::open(&data_dir.join("treble.db"))
                 .map_err(|e| format!("failed to open library: {e}"))?;
             app.manage(Arc::new(lib));
@@ -39,6 +41,10 @@ pub fn run() {
             commands::list_playlists,
             commands::get_playlist,
             commands::list_downloads,
+            commands::get_log_path,
+            commands::ui_log,
+            commands::delete_playlist,
+            commands::rename_playlist,
             commands::download_track,
             commands::export_library,
             commands::import_library,

@@ -45,15 +45,21 @@ async fn search_async(query: &str, limit: u32) -> Result<Vec<Track>> {
 }
 
 async fn resolve_async(id: &str) -> Result<String> {
-    let player = client()
-        .query()
-        .player(id)
-        .await
-        .map_err(|e| CoreError::Network(e.to_string()))?;
-    let stream = player
-        .select_audio_stream(&StreamFilter::default())
-        .ok_or_else(|| CoreError::Other(format!("no audio stream for {id}")))?;
-    Ok(stream.url.clone())
+    let work = async {
+        let player = client()
+            .query()
+            .player(id)
+            .await
+            .map_err(|e| CoreError::Network(e.to_string()))?;
+        let stream = player
+            .select_audio_stream(&StreamFilter::default())
+            .ok_or_else(|| CoreError::Other(format!("no audio stream for {id}")))?;
+        Ok(stream.url.clone())
+    };
+    match tokio::time::timeout(std::time::Duration::from_secs(25), work).await {
+        Ok(r) => r,
+        Err(_) => Err(CoreError::Other(format!("stream resolve timed out for {id}"))),
+    }
 }
 
 /// Score and rank candidates for one parsed track.

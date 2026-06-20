@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Play, Heart, Download, MoreHorizontal, Clock } from "lucide-react";
+import { Play, Heart, Download, MoreHorizontal, Clock, Pencil, Trash2, Check, X } from "lucide-react";
 import { useStore } from "../store";
 import { PLAYLISTS, TRACKS, ART } from "../data/mock";
-import { getPlaylist, type CorePlaylist } from "../lib/api";
+import { getPlaylist, deletePlaylist, renamePlaylist, downloadTrack, type CorePlaylist } from "../lib/api";
 import { isArtUrl, type Track } from "../types";
 import { isTauri } from "../lib/windows";
 
@@ -36,7 +36,29 @@ export function Detail() {
   const dates = ["2 days ago", "5 days ago", "1 week ago", "2 weeks ago", "3 weeks ago", "Mar 12", "Mar 8", "Feb 28"];
   const subtitle = real ? `${tracks.length} songs` : demo ? "24 songs, 1h 38m" : `${tracks.length} songs`;
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState("");
+  const isReal = !!real;
+
   const playAll = () => tracks[0] && dispatch({ type: "play", track: tracks[0] });
+  const downloadAll = () => {
+    tracks.forEach((t) => void downloadTrack(t));
+    if (tracks.length) dispatch({ type: "go", screen: "downloads" });
+  };
+  const doDelete = async () => {
+    if (!real) return;
+    await deletePlaylist(real.id);
+    dispatch({ type: "refreshLibrary" });
+    dispatch({ type: "go", screen: "library" });
+  };
+  const doRename = async () => {
+    if (!real || !newName.trim()) { setRenaming(false); return; }
+    await renamePlaylist(real.id, newName.trim());
+    setRenaming(false);
+    dispatch({ type: "refreshLibrary" });
+    setReal({ ...real, title: newName.trim() });
+  };
 
   return (
     <div>
@@ -44,7 +66,21 @@ export function Detail() {
         <div style={{ width: 212, height: 212, borderRadius: 14, flex: "none", background: isArtUrl(art) ? `center/cover no-repeat url(${art})` : art, boxShadow: "0 20px 44px var(--shadow)" }} />
         <div style={{ paddingBottom: 6 }}>
           <div className="eyebrow" style={{ color: "var(--text-2)" }}>Playlist</div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 54, lineHeight: 1.02, letterSpacing: "-.03em", margin: "8px 0 14px" }}>{title}</h1>
+          {renaming ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 14px" }}>
+              <input
+                autoFocus
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void doRename(); if (e.key === "Escape") setRenaming(false); }}
+                style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 40, border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", color: "var(--text)", padding: "4px 12px", outline: "none", maxWidth: 460 }}
+              />
+              <button className="icon-btn press" onClick={() => void doRename()}><Check size={20} /></button>
+              <button className="icon-btn press" onClick={() => setRenaming(false)}><X size={20} /></button>
+            </div>
+          ) : (
+            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 54, lineHeight: 1.02, letterSpacing: "-.03em", margin: "8px 0 14px" }}>{title}</h1>
+          )}
           <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.5, maxWidth: 520 }}>
             {real
               ? "Saved in Treble — matched on YouTube Music and ready to play."
@@ -60,9 +96,24 @@ export function Detail() {
 
       <div style={{ padding: "18px 34px 8px", display: "flex", alignItems: "center", gap: 18 }}>
         <button className="fab press" style={{ width: 56, height: 56, boxShadow: "0 10px 24px rgba(255,107,92,.4)" }} onClick={playAll}><Play size={24} fill="#fff" /></button>
-        <Heart size={26} className="press" style={{ color: "var(--accent)" }} fill="currentColor" />
-        <Download size={24} className="press" style={{ color: "var(--text-2)" }} />
-        <MoreHorizontal size={24} className="press" style={{ color: "var(--text-2)" }} />
+        <Heart size={26} className="press" style={{ color: "var(--accent)", cursor: "pointer" }} fill="currentColor" />
+        <Download size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={downloadAll} />
+        <div style={{ position: "relative" }}>
+          <MoreHorizontal size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={() => setMenuOpen((o) => !o)} />
+          {menuOpen && (
+            <>
+              <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+              <div style={{ position: "absolute", top: 30, left: 0, zIndex: 50, width: 180, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 16px 40px var(--shadow)", padding: 6 }}>
+                <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10, opacity: isReal ? 1 : 0.4 }} disabled={!isReal} onClick={() => { setNewName(title); setRenaming(true); setMenuOpen(false); }}>
+                  <Pencil size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Rename</span>
+                </button>
+                <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10, color: "#e0463e", opacity: isReal ? 1 : 0.4 }} disabled={!isReal} onClick={() => { setMenuOpen(false); void doDelete(); }}>
+                  <Trash2 size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Delete playlist</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div style={{ padding: "8px 34px 40px" }}>

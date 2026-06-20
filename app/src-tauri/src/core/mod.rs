@@ -10,6 +10,7 @@ pub mod downloads;
 pub mod error;
 pub mod library;
 pub mod local;
+pub mod log;
 pub mod lyrics;
 pub mod models;
 pub mod spotify_import;

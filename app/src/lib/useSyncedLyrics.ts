@@ -6,9 +6,13 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store";
-import { getLyrics, type LyricLine } from "./api";
+import { getLyrics, type Lyrics, type LyricLine } from "./api";
 import { LYRICS } from "../data/mock";
 import { isTauri } from "./windows";
+
+// Cache lyrics per track id so the docked panel, full-screen player, and pop-out
+// window don't each hit the network for the same track.
+const lyricsCache = new Map<string, Promise<Lyrics>>();
 
 export function useSyncedLyrics() {
   const { state, dispatch } = useStore();
@@ -23,7 +27,12 @@ export function useSyncedLyrics() {
       setSynced(false);
       return;
     }
-    getLyrics(track)
+    let cached = lyricsCache.get(track.id);
+    if (!cached) {
+      cached = getLyrics(track);
+      lyricsCache.set(track.id, cached);
+    }
+    cached
       .then((ly) => {
         if (!live) return;
         if (ly.synced && ly.lines.length) {

@@ -12,8 +12,8 @@ export function Titlebar() {
     // data-tauri-drag-region makes the whole bar draggable in Tauri.
     <div className="titlebar" data-tauri-drag-region>
       <div style={{ display: "flex", gap: 6, color: "var(--text-3)" }}>
-        <button className="press" style={iconBtn} onClick={() => window.history.back()}><ChevronLeft size={18} /></button>
-        <button className="press" style={{ ...iconBtn, opacity: 0.5 }} onClick={() => window.history.forward()}><ChevronRight size={18} /></button>
+        <button className="press" style={{ ...iconBtn, opacity: state.back.length ? 1 : 0.4 }} disabled={!state.back.length} onClick={() => dispatch({ type: "navBack" })}><ChevronLeft size={18} /></button>
+        <button className="press" style={{ ...iconBtn, opacity: state.forward.length ? 1 : 0.4 }} disabled={!state.forward.length} onClick={() => dispatch({ type: "navForward" })}><ChevronRight size={18} /></button>
       </div>
 
       <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>

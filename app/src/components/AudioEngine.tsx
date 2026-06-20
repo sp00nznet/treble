@@ -10,7 +10,7 @@
  */
 import { useEffect, useRef } from "react";
 import { useStore } from "../store";
-import { resolveStream } from "../lib/api";
+import { resolveStream, uiLog } from "../lib/api";
 import { isTauri } from "../lib/windows";
 import { trackDuration } from "../lib/format";
 
@@ -33,13 +33,19 @@ export function AudioEngine() {
     const onTime = () => dispatch({ type: "setProgress", position: el.currentTime, duration: el.duration || 0 });
     const onMeta = () => dispatch({ type: "setProgress", position: el.currentTime, duration: el.duration || 0 });
     const onEnded = () => dispatch({ type: "togglePlay" });
+    const onError = () => uiLog(`audio error: ${el.error?.code ?? "?"} for ${el.currentSrc?.slice(0, 60)}`);
+    const onPlaying = () => uiLog("audio playing");
     el.addEventListener("timeupdate", onTime);
     el.addEventListener("loadedmetadata", onMeta);
     el.addEventListener("ended", onEnded);
+    el.addEventListener("error", onError);
+    el.addEventListener("playing", onPlaying);
     return () => {
       el.removeEventListener("timeupdate", onTime);
       el.removeEventListener("loadedmetadata", onMeta);
       el.removeEventListener("ended", onEnded);
+      el.removeEventListener("error", onError);
+      el.removeEventListener("playing", onPlaying);
       el.pause();
       el.src = "";
     };
@@ -55,14 +61,16 @@ export function AudioEngine() {
 
     let cancelled = false;
     loadedId.current = track.id;
+    uiLog(`play requested: ${track.title} (${track.id})`);
     (async () => {
       try {
         const url = await resolveStream(track.id);
         if (cancelled) return;
+        uiLog(`stream resolved, setting src + play`);
         el.src = url;
-        if (playingRef.current) await el.play().catch(() => {});
-      } catch {
-        /* track won't start; core logs the reason */
+        if (playingRef.current) await el.play().catch((e) => uiLog(`play() rejected: ${e}`));
+      } catch (e) {
+        uiLog(`resolveStream failed: ${e}`);
       }
     })();
     return () => {
@@ -77,6 +85,11 @@ export function AudioEngine() {
     if (state.playing) el.play().catch(() => {});
     else el.pause();
   }, [state.playing]);
+
+  // Reflect volume.
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = state.volume;
+  }, [state.volume]);
 
   // Apply a UI seek request.
   useEffect(() => {
