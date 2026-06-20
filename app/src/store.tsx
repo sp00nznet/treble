@@ -66,7 +66,7 @@ const initial: State = {
   themePref: "light",
   accent: "Amber",
   libTab: "Playlists",
-  playing: true,
+  playing: false,
   npOpen: false,
   miniOpen: false,
   lyricsOpen: false,
