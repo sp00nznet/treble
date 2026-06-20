@@ -1,4 +1,4 @@
-import type { LibraryItem, Playlist, Track } from "./types";
+import type { LibraryItem, Playlist, Track } from "../types";
 
 const g = (s: string) => `linear-gradient(135deg,${s})`;
 /** Gradient placeholders stand in for cover art until real URLs are wired. */

@@ -19,10 +19,17 @@ export interface Track {
   title: string;
   artist: string;
   album: string;
-  duration: string; // "3:58" — swap to seconds when wiring real playback
-  /** CSS gradient placeholder in mock data; real cover URL in production. */
+  duration: string; // "3:58" — display string
+  /** Source of truth for scrubbing/lyrics sync; 0 when unknown (mock data). */
+  duration_secs?: number;
+  /** A CSS gradient (mock data) OR a real cover-art URL (`http(s)://…`) from the catalog. */
   art: string;
   downloaded?: boolean;
+}
+
+/** True when `art` is a real image URL rather than a CSS gradient placeholder. */
+export function isArtUrl(art: string): boolean {
+  return /^https?:\/\//.test(art);
 }
 
 export interface Playlist {

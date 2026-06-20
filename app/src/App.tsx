@@ -6,6 +6,7 @@ import { NowPlayingPanel } from "./components/NowPlayingPanel";
 import { NowPlaying } from "./components/NowPlaying";
 import { ContextMenu } from "./components/ContextMenu";
 import { MiniPlayer, LyricsWindow } from "./components/FloatingWindows";
+import { AudioEngine } from "./components/AudioEngine";
 import { Home } from "./screens/Home";
 import { Search } from "./screens/Search";
 import { Explore } from "./screens/Explore";
@@ -46,6 +47,9 @@ export function App() {
         <main className="center">{renderScreen(state.screen)}</main>
         <NowPlayingPanel />
       </div>
+
+      {/* the actual sound — headless, syncs <audio> to the store */}
+      <AudioEngine />
 
       {/* overlays / floating windows */}
       {state.npOpen && <NowPlaying />}

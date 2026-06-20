@@ -1,4 +1,3 @@
-import { Play } from "lucide-react";
 import { useStore } from "../store";
 import type { Track } from "../types";
 
