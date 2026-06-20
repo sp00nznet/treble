@@ -244,6 +244,22 @@ export async function renamePlaylist(id: string, name: string): Promise<void> {
   return invoke<void>("rename_playlist", { id, name });
 }
 
+export async function setRating(trackId: string, rating: number): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("set_rating", { trackId, rating });
+}
+
+/** Open an image picker; returns the chosen file path (or null). */
+export async function pickImage(): Promise<string | null> {
+  if (!isTauri()) return null;
+  return invoke<string | null>("pick_image");
+}
+
+/** Set a playlist's cover from an image file; returns the new art reference. */
+export async function setPlaylistCover(id: string, srcPath: string): Promise<string> {
+  return invoke<string>("set_playlist_cover", { id, srcPath });
+}
+
 /** Path to the on-disk log file (for diagnostics). */
 export async function getLogPath(): Promise<string | null> {
   if (!isTauri()) return null;

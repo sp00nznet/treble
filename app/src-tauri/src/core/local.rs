@@ -69,5 +69,6 @@ fn read_track(path: &Path) -> Option<Track> {
         duration_secs: secs,
         art: String::new(),
         downloaded: true, // local files are inherently offline
+        rating: 0,
     })
 }

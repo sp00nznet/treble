@@ -23,6 +23,9 @@ pub struct Track {
     pub art: String,
     #[serde(default)]
     pub downloaded: bool,
+    /// 0 = unrated, 1–5 stars (iTunes-style).
+    #[serde(default)]
+    pub rating: u8,
 }
 
 impl Track {

@@ -215,6 +215,7 @@ fn track_from_json(v: &Value) -> Option<Track> {
         duration_secs,
         art,
         downloaded: false,
+        rating: 0,
     })
 }
 

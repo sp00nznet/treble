@@ -16,6 +16,7 @@ interface State {
   accent: AccentName;
   libTab: string;
   playing: boolean;
+  loading: boolean; // resolving/buffering the current track's stream
   npOpen: boolean; // full-screen now playing
   miniOpen: boolean; // floating mini window
   lyricsOpen: boolean; // floating lyrics window
@@ -28,6 +29,7 @@ interface State {
   sleepEndsAt: number | null; // epoch ms when the sleep timer pauses playback
   libRefresh: number; // bump to force library/detail screens to reload from the DB
   volume: number; // 0..1, applied to the audio element
+  autoDownload: boolean; // cache tracks for offline as they're played
   back: NavEntry[]; // navigation history (back stack)
   forward: NavEntry[]; // navigation history (forward stack)
 }
@@ -58,7 +60,9 @@ type Action =
   | { type: "refreshLibrary" }
   | { type: "navBack" }
   | { type: "navForward" }
-  | { type: "setVolume"; volume: number };
+  | { type: "setVolume"; volume: number }
+  | { type: "setLoading"; loading: boolean }
+  | { type: "setAutoDownload"; on: boolean };
 
 const initial: State = {
   screen: "home",
@@ -67,6 +71,7 @@ const initial: State = {
   accent: "Amber",
   libTab: "Playlists",
   playing: false,
+  loading: false,
   npOpen: false,
   miniOpen: false,
   lyricsOpen: false,
@@ -79,6 +84,7 @@ const initial: State = {
   sleepEndsAt: null,
   libRefresh: 0,
   volume: 1,
+  autoDownload: (() => { try { return localStorage.getItem("treble.autoDownload") === "1"; } catch { return false; } })(),
   back: [],
   forward: [],
 };
@@ -113,10 +119,16 @@ function reducer(s: State, a: Action): State {
         ...s,
         nowPlaying: a.track,
         playing: true,
+        loading: true,
         positionSecs: 0,
         durationSecs: trackDuration(a.track),
         pendingSeek: null,
       };
+    case "setLoading":
+      return { ...s, loading: a.loading };
+    case "setAutoDownload":
+      try { localStorage.setItem("treble.autoDownload", a.on ? "1" : "0"); } catch { /* ignore */ }
+      return { ...s, autoDownload: a.on };
     case "setNp":
       return { ...s, npOpen: a.open };
     case "setMini":

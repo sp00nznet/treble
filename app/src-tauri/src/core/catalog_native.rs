@@ -187,6 +187,7 @@ fn track_from_item(t: rustypipe::model::TrackItem) -> Track {
         duration_secs: secs,
         art,
         downloaded: false,
+        rating: 0,
     }
 }
 

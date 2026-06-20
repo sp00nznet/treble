@@ -3,7 +3,8 @@ import { Plus, Import, FolderPlus, Loader2 } from "lucide-react";
 import { useStore } from "../store";
 import { LIBRARY } from "../data/mock";
 import { listPlaylists, pickFolder, scanLocalFolder } from "../lib/api";
-import { isArtUrl, type LibraryItem } from "../types";
+import { artBg } from "../lib/art";
+import type { LibraryItem } from "../types";
 import { isTauri } from "../lib/windows";
 
 const TABS = ["Playlists", "Albums", "Artists", "Podcasts", "Songs"];
@@ -93,7 +94,7 @@ export function Library() {
         <div className="grid-5">
           {items.map((m) => (
             <div key={m.id} className="card" style={{ border: "none", background: "transparent", padding: 0 }} onClick={() => dispatch({ type: "openDetail", id: m.id })}>
-              <div className="art" style={{ background: isArtUrl(m.art) ? `center/cover no-repeat url(${m.art})` : m.art || "var(--surface-2)", borderRadius: m.shape === "circle" ? "50%" : "var(--r-art)", marginBottom: 11 }} />
+              <div className="art" style={{ background: artBg(m.art), borderRadius: m.shape === "circle" ? "50%" : "var(--r-art)", marginBottom: 11 }} />
               <div className="ellipsis" style={{ fontSize: 14, fontWeight: 700, textAlign: m.shape === "circle" ? "center" : "left" }}>{m.title}</div>
               <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 2, textAlign: m.shape === "circle" ? "center" : "left" }}>{m.subtitle}</div>
             </div>

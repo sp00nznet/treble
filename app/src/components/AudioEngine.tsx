@@ -10,7 +10,7 @@
  */
 import { useEffect, useRef } from "react";
 import { useStore } from "../store";
-import { resolveStream, uiLog } from "../lib/api";
+import { resolveStream, uiLog, downloadTrack } from "../lib/api";
 import { isTauri } from "../lib/windows";
 import { trackDuration } from "../lib/format";
 
@@ -33,19 +33,22 @@ export function AudioEngine() {
     const onTime = () => dispatch({ type: "setProgress", position: el.currentTime, duration: el.duration || 0 });
     const onMeta = () => dispatch({ type: "setProgress", position: el.currentTime, duration: el.duration || 0 });
     const onEnded = () => dispatch({ type: "togglePlay" });
-    const onError = () => uiLog(`audio error: ${el.error?.code ?? "?"} for ${el.currentSrc?.slice(0, 60)}`);
-    const onPlaying = () => uiLog("audio playing");
+    const onError = () => { dispatch({ type: "setLoading", loading: false }); uiLog(`audio error: ${el.error?.code ?? "?"} for ${el.currentSrc?.slice(0, 60)}`); };
+    const onPlaying = () => { dispatch({ type: "setLoading", loading: false }); uiLog("audio playing"); };
+    const onCanPlay = () => dispatch({ type: "setLoading", loading: false });
     el.addEventListener("timeupdate", onTime);
     el.addEventListener("loadedmetadata", onMeta);
     el.addEventListener("ended", onEnded);
     el.addEventListener("error", onError);
     el.addEventListener("playing", onPlaying);
+    el.addEventListener("canplay", onCanPlay);
     return () => {
       el.removeEventListener("timeupdate", onTime);
       el.removeEventListener("loadedmetadata", onMeta);
       el.removeEventListener("ended", onEnded);
       el.removeEventListener("error", onError);
       el.removeEventListener("playing", onPlaying);
+      el.removeEventListener("canplay", onCanPlay);
       el.pause();
       el.src = "";
     };
@@ -70,6 +73,7 @@ export function AudioEngine() {
         el.src = url;
         if (playingRef.current) await el.play().catch((e) => uiLog(`play() rejected: ${e}`));
       } catch (e) {
+        dispatch({ type: "setLoading", loading: false });
         uiLog(`resolveStream failed: ${e}`);
       }
     })();
@@ -90,6 +94,15 @@ export function AudioEngine() {
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = state.volume;
   }, [state.volume]);
+
+  // Auto-download: cache streamed tracks for offline as they play, when enabled.
+  useEffect(() => {
+    const t = state.nowPlaying;
+    if (!t || !isTauri()) return;
+    if (state.autoDownload && !t.downloaded && !t.id.startsWith("local:")) {
+      void downloadTrack(t);
+    }
+  }, [state.nowPlaying, state.autoDownload]);
 
   // Apply a UI seek request.
   useEffect(() => {

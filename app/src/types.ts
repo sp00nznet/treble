@@ -25,6 +25,8 @@ export interface Track {
   /** A CSS gradient (mock data) OR a real cover-art URL (`http(s)://…`) from the catalog. */
   art: string;
   downloaded?: boolean;
+  /** 0 = unrated, 1–5 stars. */
+  rating?: number;
 }
 
 /** True when `art` is a real image URL rather than a CSS gradient placeholder. */

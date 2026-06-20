@@ -114,6 +114,48 @@ pub fn rename_playlist(lib: State<Arc<Library>>, id: String, name: String) -> Cm
     lib.rename_playlist(&id, &name)
 }
 
+#[tauri::command]
+pub fn set_rating(lib: State<Arc<Library>>, track_id: String, rating: u8) -> CmdResult<()> {
+    lib.set_rating(&track_id, rating)
+}
+
+/// Replace a playlist's cover with an image file (copied into app data). Returns
+/// the new art reference (a `local:` path the frontend resolves via the asset
+/// protocol).
+#[tauri::command]
+pub fn set_playlist_cover(app: AppHandle, lib: State<Arc<Library>>, id: String, src_path: String) -> CmdResult<String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
+        .join("covers");
+    std::fs::create_dir_all(&dir).ok();
+    let ext = std::path::Path::new(&src_path).extension().and_then(|e| e.to_str()).unwrap_or("png");
+    let dest = dir.join(format!("{id}.{ext}"));
+    std::fs::copy(&src_path, &dest)?;
+    let art = format!("local:{}", dest.to_string_lossy().replace('\\', "/"));
+    lib.set_playlist_art(&id, &art)?;
+    Ok(art)
+}
+
+/// Native file picker for an image (playlist cover).
+#[cfg(desktop)]
+#[tauri::command]
+pub fn pick_image(app: AppHandle) -> Option<String> {
+    app.dialog()
+        .file()
+        .add_filter("Image", &["png", "jpg", "jpeg", "webp", "gif"])
+        .blocking_pick_file()
+        .and_then(|p| p.into_path().ok())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
+#[cfg(mobile)]
+#[tauri::command]
+pub fn pick_image(_app: AppHandle) -> Option<String> {
+    None
+}
+
 /// Progress payload while matching imported tracks to the catalog.
 #[derive(Serialize, Clone)]
 struct ImportProgress {
@@ -242,6 +284,13 @@ fn do_import(app: AppHandle, lib: Arc<Library>, name: String, text: String) {
     let rows = match_step(&parsed, per, progress);
     let matched_count = rows.iter().filter(|r| !r.candidates.is_empty()).count();
     crate::tlog!("import: matched {}/{} on YouTube Music", matched_count, total);
+    // Log exactly which tracks had no YouTube Music match (so they can be checked).
+    for r in &rows {
+        if r.candidates.is_empty() {
+            let p = &parsed[r.index];
+            crate::tlog!("import: NO MATCH — {} — {}", p.title, p.artist);
+        }
+    }
 
     if IMPORT_CANCEL.load(Ordering::Relaxed) {
         let _ = app.emit("import:cancelled", ());

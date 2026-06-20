@@ -1,4 +1,4 @@
-import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Play, Pause, Minimize2 } from "lucide-react";
+import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Play, Pause, Minimize2, Loader2 } from "lucide-react";
 import { useStore } from "../store";
 import { Scrubber } from "./Scrubber";
 import { fmtTime } from "../lib/format";
@@ -30,7 +30,13 @@ export function NowPlaying() {
 
       {/* left: art + controls */}
       <div style={{ width: "46%", maxWidth: 560, flex: "none", background: "linear-gradient(180deg,#3a1c20,#140f0d 70%)", padding: "72px 56px 44px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ width: 300, height: 300, borderRadius: 18, background: np && isArtUrl(np.art) ? `center/cover no-repeat url(${np.art})` : np?.art || "rgba(255,255,255,.08)", boxShadow: "0 28px 64px rgba(0,0,0,.55)", marginBottom: 34 }} />
+        <div style={{ position: "relative", width: 300, height: 300, borderRadius: 18, background: np && isArtUrl(np.art) ? `center/cover no-repeat url(${np.art})` : np?.art || "rgba(255,255,255,.08)", boxShadow: "0 28px 64px rgba(0,0,0,.55)", marginBottom: 34 }}>
+          {state.loading && (
+            <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.4)", borderRadius: 18 }}>
+              <Loader2 size={56} className="spin" style={{ color: "#fff" }} />
+            </span>
+          )}
+        </div>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 34, color: "#fff", letterSpacing: "-.01em" }}>{title}</div>

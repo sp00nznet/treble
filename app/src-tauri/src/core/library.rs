@@ -55,6 +55,10 @@ impl Library {
                 track_id TEXT PRIMARY KEY REFERENCES tracks(id),
                 added    INTEGER NOT NULL DEFAULT 0
             );
+            CREATE TABLE IF NOT EXISTS ratings (
+                track_id TEXT PRIMARY KEY,
+                rating   INTEGER NOT NULL DEFAULT 0
+            );
             "#,
         )?;
         Ok(())
@@ -110,8 +114,10 @@ impl Library {
             Err(e) => return Err(e.into()),
         };
         let mut stmt = conn.prepare(
-            "SELECT t.id, t.title, t.artist, t.album, t.duration_secs, t.art, t.downloaded
+            "SELECT t.id, t.title, t.artist, t.album, t.duration_secs, t.art, t.downloaded,
+                    COALESCE(rt.rating, 0)
              FROM playlist_tracks pt JOIN tracks t ON t.id = pt.track_id
+             LEFT JOIN ratings rt ON rt.track_id = t.id
              WHERE pt.playlist_id = ?1 ORDER BY pt.position",
         )?;
         let rows = stmt.query_map(params![id], |r| {
@@ -125,6 +131,7 @@ impl Library {
                 duration_secs: secs,
                 art: r.get(5)?,
                 downloaded: r.get::<_, i64>(6)? != 0,
+                rating: r.get::<_, i64>(7)? as u8,
             })
         })?;
         pl.tracks = rows.filter_map(|r| r.ok()).collect();
@@ -193,9 +200,28 @@ impl Library {
                 duration_secs: secs,
                 art: r.get(5)?,
                 downloaded: true,
+                rating: 0,
             })
         })?;
         Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    /// Set a track's 0–5 star rating (0 clears it).
+    pub fn set_rating(&self, track_id: &str, rating: u8) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO ratings (track_id, rating) VALUES (?1, ?2)
+             ON CONFLICT(track_id) DO UPDATE SET rating = excluded.rating",
+            params![track_id, rating.min(5) as i64],
+        )?;
+        Ok(())
+    }
+
+    /// Set a playlist's cover art (a file path / URL).
+    pub fn set_playlist_art(&self, id: &str, art: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("UPDATE playlists SET art = ?1 WHERE id = ?2", params![art, id])?;
+        Ok(())
     }
 }
 

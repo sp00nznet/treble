@@ -1,7 +1,7 @@
 import { Play, Search, Import } from "lucide-react";
 import { useStore } from "../store";
 import { usePlaylists } from "../lib/usePlaylists";
-import { isArtUrl } from "../types";
+import { artBg } from "../lib/art";
 
 export function Home() {
   const { dispatch } = useStore();
@@ -30,7 +30,7 @@ export function Home() {
           <div className="grid-5">
             {playlists.map((p) => (
               <div key={p.id} className="card" onClick={() => dispatch({ type: "openDetail", id: p.id })}>
-                <div className="art" style={{ background: isArtUrl(p.art) ? `center/cover no-repeat url(${p.art})` : p.art || "var(--surface-2)", marginBottom: 12, position: "relative" }}>
+                <div className="art" style={{ background: artBg(p.art), marginBottom: 12, position: "relative" }}>
                   <span className="fab" style={{ position: "absolute", right: 9, bottom: 9, width: 44, height: 44, boxShadow: "0 8px 18px rgba(255,107,92,.45)" }}>
                     <Play size={18} fill="#fff" />
                   </span>

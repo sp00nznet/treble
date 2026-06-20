@@ -1,4 +1,4 @@
-import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Play, Pause, Maximize2, ExternalLink, ListMusic, Volume2 } from "lucide-react";
+import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Play, Pause, Maximize2, ExternalLink, ListMusic, Volume2, Loader2 } from "lucide-react";
 import { useStore } from "../store";
 import { toggleFloating } from "../lib/windows";
 import { Scrubber } from "./Scrubber";
@@ -34,8 +34,14 @@ export function NowPlayingPanel() {
       <button
         className="press"
         onClick={() => dispatch({ type: "setNp", open: true })}
-        style={{ width: "100%", aspectRatio: "1", borderRadius: 16, border: "none", background: np && isArtUrl(np.art) ? `center/cover no-repeat url(${np.art})` : np?.art || "var(--surface-2)", boxShadow: "0 16px 34px var(--shadow)", marginBottom: 18, cursor: "pointer" }}
-      />
+        style={{ position: "relative", width: "100%", aspectRatio: "1", borderRadius: 16, border: "none", background: np && isArtUrl(np.art) ? `center/cover no-repeat url(${np.art})` : np?.art || "var(--surface-2)", boxShadow: "0 16px 34px var(--shadow)", marginBottom: 18, cursor: "pointer" }}
+      >
+        {state.loading && (
+          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.35)", borderRadius: 16 }}>
+            <Loader2 size={40} className="spin" style={{ color: "#fff" }} />
+          </span>
+        )}
+      </button>
 
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
         <div style={{ minWidth: 0 }}>
