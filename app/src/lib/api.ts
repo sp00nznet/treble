@@ -177,17 +177,40 @@ export async function importSpotify(name: string, text: string): Promise<CorePla
   return invoke<CorePlaylist>("import_spotify", { name, text });
 }
 
-/** Smart match: parse + fetch ranked candidates per track for user review (no silent guessing). */
-export async function prepareImport(text: string): Promise<MatchRow[]> {
-  if (!isTauri()) {
-    const parsed = localParseSpotify(text);
-    return parsed.map((p, i) => {
-      const pick = TRACKS[i % TRACKS.length];
-      const alts = [pick, TRACKS[(i + 1) % TRACKS.length], TRACKS[(i + 2) % TRACKS.length]];
-      return { parsed: p, candidates: alts, confident: i % 3 !== 0 }; // ~1/3 flagged for review in preview
-    });
-  }
-  return invoke<MatchRow[]>("prepare_import", { text });
+export interface ImportRowsEvent {
+  name: string;
+  rows: MatchRow[];
+}
+
+export interface ImportDoneEvent {
+  playlist: CorePlaylist;
+  total: number;
+  matched: number;
+  skipped: number;
+}
+
+/**
+ * Start a background Spotify import. Returns immediately; results arrive via
+ * events: `import:progress`, then `import:rows` (small playlists → review) or
+ * `import:done` (large playlists → auto-imported), or `import:cancelled`.
+ */
+export async function importRun(name: string, text: string): Promise<void> {
+  return invoke<void>("import_run", { name, text });
+}
+
+/** Cancel the in-flight import. */
+export async function importCancel(): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("import_cancel");
+}
+
+/** Browser-preview matcher (no backend) — builds review rows from the mock catalog. */
+export function prepareImportBrowser(text: string): MatchRow[] {
+  const parsed = localParseSpotify(text);
+  return parsed.map((p, i) => {
+    const alts = [TRACKS[i % TRACKS.length], TRACKS[(i + 1) % TRACKS.length], TRACKS[(i + 2) % TRACKS.length]];
+    return { parsed: p, candidates: alts, confident: i % 3 !== 0 };
+  });
 }
 
 /** Save the user's confirmed selections as a real playlist. */

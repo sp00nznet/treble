@@ -3,14 +3,22 @@
 //! events the UI listens to (`download:progress`, `import:progress`).
 
 use crate::core::library::Library;
-use crate::core::models::{Lyrics, ParsedTrack, Playlist, Track};
+use crate::core::models::{BulkRow, Lyrics, ParsedTrack, Playlist, Track};
 use crate::core::sync::{Peer, SendMessage, Snapshot, SyncService};
 use crate::core::{catalog, downloads, local, lyrics, spotify_import, sync, tools};
 use serde::Serialize;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
+
+/// Cancellation flag for the in-flight Spotify import (one import at a time).
+static IMPORT_CANCEL: AtomicBool = AtomicBool::new(false);
+
+/// Playlists above this size skip the per-track review and auto-import in the
+/// background (you can't sanely eyeball thousands of rows).
+const REVIEW_MAX: usize = 60;
 
 type CmdResult<T> = std::result::Result<T, crate::core::error::CoreError>;
 
@@ -117,32 +125,104 @@ pub struct MatchRow {
     pub confident: bool,
 }
 
-/// Parse a pasted Spotify selection and, for each track, fetch ranked YouTube
-/// Music candidates for review — instead of silently guessing. Emits
-/// `import:progress`. The frontend lets the user confirm/override before saving.
+/// Emitted when matching finishes for a small playlist — the rows to review.
+#[derive(Serialize, Clone)]
+struct ImportRows {
+    name: String,
+    rows: Vec<MatchRow>,
+}
+
+/// Emitted when a large playlist finished auto-importing.
+#[derive(Serialize, Clone)]
+struct ImportDone {
+    playlist: Playlist,
+    total: usize,
+    matched: usize,
+    skipped: usize,
+}
+
+/// Cancel the in-flight import.
 #[tauri::command]
-pub fn prepare_import(app: AppHandle, text: String) -> CmdResult<Vec<MatchRow>> {
+pub fn import_cancel() {
+    IMPORT_CANCEL.store(true, Ordering::Relaxed);
+}
+
+/// Start importing a pasted Spotify selection. Runs entirely on a background
+/// thread (never blocks the UI), matches tracks concurrently against YouTube
+/// Music, and is cancellable. Small playlists emit `import:rows` for review;
+/// large ones auto-import and emit `import:done`. Progress streams on
+/// `import:progress`; cancellation emits `import:cancelled`.
+#[tauri::command]
+pub fn import_run(app: AppHandle, lib: State<Arc<Library>>, name: String, text: String) {
+    let lib = lib.inner().clone();
+    IMPORT_CANCEL.store(false, Ordering::Relaxed);
+    std::thread::spawn(move || do_import(app, lib, name, text));
+}
+
+fn do_import(app: AppHandle, lib: Arc<Library>, name: String, text: String) {
     let parsed = spotify_import::parse(&text);
     let total = parsed.len();
-    let mut rows = Vec::with_capacity(total);
-    for (i, p) in parsed.iter().enumerate() {
-        let _ = app.emit(
-            "import:progress",
-            ImportProgress { done: i, total, matched: rows.len(), current: format!("{} — {}", p.title, p.artist) },
-        );
-        let scored = catalog::match_candidates(p, 4).unwrap_or_default();
-        let confident = scored.first().map(|(_, s)| *s >= catalog::CONFIDENT_SCORE).unwrap_or(false);
-        rows.push(MatchRow {
-            parsed: p.clone(),
-            candidates: scored.into_iter().map(|(t, _)| t).collect(),
-            confident,
-        });
+    if total == 0 {
+        let _ = app.emit("import:done", ImportDone { playlist: Playlist::default(), total: 0, matched: 0, skipped: 0 });
+        return;
     }
-    let _ = app.emit(
-        "import:progress",
-        ImportProgress { done: total, total, matched: rows.len(), current: String::new() },
-    );
-    Ok(rows)
+    let review = total <= REVIEW_MAX;
+    let per = if review { 4 } else { 1 };
+
+    let progress = |done: usize, current: &str| {
+        let _ = app.emit("import:progress", ImportProgress { done, total, matched: done, current: current.to_string() });
+    };
+    let rows = match_step(&parsed, per, progress);
+
+    if IMPORT_CANCEL.load(Ordering::Relaxed) {
+        let _ = app.emit("import:cancelled", ());
+        return;
+    }
+
+    if review {
+        let match_rows: Vec<MatchRow> = rows
+            .into_iter()
+            .map(|r| MatchRow {
+                parsed: parsed[r.index].clone(),
+                candidates: r.candidates,
+                confident: r.confident,
+            })
+            .collect();
+        let _ = app.emit("import:rows", ImportRows { name, rows: match_rows });
+    } else {
+        // Auto-import: take the best candidate for each matched track.
+        let tracks: Vec<Track> = rows.into_iter().filter_map(|r| r.candidates.into_iter().next()).collect();
+        let matched = tracks.len();
+        match lib.create_playlist(&name, &tracks).and_then(|id| lib.get_playlist(&id)) {
+            Ok(Some(pl)) => {
+                let _ = app.emit("import:done", ImportDone { playlist: pl, total, matched, skipped: total - matched });
+            }
+            _ => {
+                let _ = app.emit("import:done", ImportDone { playlist: Playlist { title: name, ..Default::default() }, total, matched, skipped: total - matched });
+            }
+        }
+    }
+}
+
+/// Match step, backend-aware: concurrent via rustypipe (default), else sequential.
+#[cfg(feature = "native-catalog")]
+fn match_step(parsed: &[ParsedTrack], per: usize, on_progress: impl FnMut(usize, &str)) -> Vec<BulkRow> {
+    crate::core::catalog_native::match_bulk(parsed, per, 8, &IMPORT_CANCEL, on_progress)
+}
+
+#[cfg(not(feature = "native-catalog"))]
+fn match_step(parsed: &[ParsedTrack], per: usize, mut on_progress: impl FnMut(usize, &str)) -> Vec<BulkRow> {
+    let mut rows = Vec::with_capacity(parsed.len());
+    for (index, p) in parsed.iter().enumerate() {
+        if IMPORT_CANCEL.load(Ordering::Relaxed) {
+            break;
+        }
+        let scored = catalog::match_candidates(p, per).unwrap_or_default();
+        let confident = scored.first().map(|(_, s)| *s >= catalog::CONFIDENT_SCORE).unwrap_or(false);
+        on_progress(index + 1, &p.title);
+        rows.push(BulkRow { index, candidates: scored.into_iter().map(|(t, _)| t).collect(), confident });
+    }
+    rows
 }
 
 /// Save the user's confirmed track selections as a real, playable playlist.

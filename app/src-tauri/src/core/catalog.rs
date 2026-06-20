@@ -123,7 +123,8 @@ pub fn match_track(parsed: &ParsedTrack) -> Result<Option<Track>> {
 pub const CONFIDENT_SCORE: f64 = 0.62;
 
 /// Return up to `limit` candidates for a parsed track, sorted best-first, each
-/// paired with its 0.0–1.0 match score. Powers the "smart match" review UI.
+/// paired with its 0.0–1.0 match score. Used by the non-native (yt-dlp) import path.
+#[cfg_attr(feature = "native-catalog", allow(dead_code))]
 pub fn match_candidates(parsed: &ParsedTrack, limit: usize) -> Result<Vec<(Track, f64)>> {
     let query = if parsed.artist.is_empty() {
         parsed.title.clone()
@@ -144,7 +145,7 @@ pub fn match_candidates(parsed: &ParsedTrack, limit: usize) -> Result<Vec<(Track
 }
 
 /// 0.0–1.0 similarity of a candidate to what we're looking for.
-fn score_match(parsed: &ParsedTrack, cand: &Track, want_secs: Option<u32>) -> f64 {
+pub(crate) fn score_match(parsed: &ParsedTrack, cand: &Track, want_secs: Option<u32>) -> f64 {
     let title = token_overlap(&parsed.title, &cand.title);
     let artist = if parsed.artist.is_empty() {
         0.5
@@ -180,7 +181,7 @@ fn token_overlap(a: &str, b: &str) -> f64 {
 }
 
 /// "3:58" → 238 seconds.
-fn parse_duration(s: &str) -> Option<u32> {
+pub(crate) fn parse_duration(s: &str) -> Option<u32> {
     let (m, sec) = s.split_once(':')?;
     Some(m.trim().parse::<u32>().ok()? * 60 + sec.trim().parse::<u32>().ok()?)
 }

@@ -44,6 +44,15 @@ pub struct Playlist {
     pub tracks: Vec<Track>,
 }
 
+/// Internal result of matching one parsed track against the catalog: its ranked
+/// candidates and whether the top one is a confident match. Converted to the
+/// serialized `MatchRow` (commands) for the review UI.
+pub struct BulkRow {
+    pub index: usize,
+    pub candidates: Vec<Track>,
+    pub confident: bool,
+}
+
 /// A track parsed out of a pasted Spotify selection, before matching to the catalog.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ParsedTrack {

@@ -10,7 +10,11 @@
 import { useEffect, useRef, useState } from "react";
 import { ClipboardPaste, X, Check, Loader2, AlertTriangle, ChevronDown } from "lucide-react";
 import { useStore } from "../store";
-import { prepareImport, saveMatchedPlaylist, listen, type ImportProgress, type MatchRow, type CorePlaylist } from "../lib/api";
+import {
+  importRun, importCancel, prepareImportBrowser, saveMatchedPlaylist, listen,
+  type ImportProgress, type MatchRow, type CorePlaylist, type ImportRowsEvent, type ImportDoneEvent,
+} from "../lib/api";
+import { isTauri } from "../lib/windows";
 import { isArtUrl, type Track } from "../types";
 
 type Phase = "input" | "matching" | "review" | "saving" | "done";
@@ -27,17 +31,33 @@ export function ImportModal() {
   const [sel, setSel] = useState<number[]>([]); // chosen candidate index per row (SKIP = skip)
   const [expanded, setExpanded] = useState<number | null>(null);
   const [result, setResult] = useState<CorePlaylist | null>(null);
+  const [summary, setSummary] = useState<{ matched: number; total: number; skipped: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const unlisten = useRef<(() => void) | null>(null);
+  const uns = useRef<Array<() => void>>([]);
 
+  // Subscribe to the import lifecycle while the modal is open.
   useEffect(() => {
     if (!state.importOpen) return;
     let live = true;
-    listen<ImportProgress>("import:progress", (p) => live && setProgress(p)).then((un) => (unlisten.current = un));
+    const add = (p: Promise<() => void>) => p.then((u) => live ? uns.current.push(u) : u());
+    add(listen<ImportProgress>("import:progress", (p) => live && setProgress(p)));
+    add(listen<ImportRowsEvent>("import:rows", (e) => {
+      if (!live) return;
+      setRows(e.rows);
+      setSel(e.rows.map((r) => (r.candidates.length ? 0 : SKIP)));
+      setPhase("review");
+    }));
+    add(listen<ImportDoneEvent>("import:done", (e) => {
+      if (!live) return;
+      setResult(e.playlist);
+      setSummary({ matched: e.matched, total: e.total, skipped: e.skipped });
+      setPhase("done");
+    }));
+    add(listen<null>("import:cancelled", () => live && setPhase("input")));
     return () => {
       live = false;
-      unlisten.current?.();
-      unlisten.current = null;
+      uns.current.forEach((u) => u());
+      uns.current = [];
     };
   }, [state.importOpen]);
 
@@ -51,6 +71,7 @@ export function ImportModal() {
     setSel([]);
     setExpanded(null);
     setResult(null);
+    setSummary(null);
     setErr(null);
     setText("");
   };
@@ -69,16 +90,26 @@ export function ImportModal() {
     setPhase("matching");
     setProgress(null);
     setErr(null);
-    try {
-      const r = await prepareImport(text);
+    // Browser preview has no backend/events — build review rows synchronously.
+    if (!isTauri()) {
+      const r = prepareImportBrowser(text);
       setRows(r);
-      // Default selection: the top candidate (or skip when nothing was found).
       setSel(r.map((row) => (row.candidates.length ? 0 : SKIP)));
       setPhase("review");
+      return;
+    }
+    // Real import runs in the background; import:rows / import:done drive the rest.
+    try {
+      await importRun(name.trim() || "Imported Playlist", text);
     } catch (e) {
       setErr(String(e));
       setPhase("input");
     }
+  };
+
+  const cancel = () => {
+    void importCancel();
+    setPhase("input");
   };
 
   const create = async () => {
@@ -155,6 +186,14 @@ export function ImportModal() {
               <span className="ellipsis" style={{ maxWidth: 360 }}>{progress?.current || "Starting…"}</span>
               <span>{progress ? `${progress.done}/${progress.total}` : ""}</span>
             </div>
+            {progress && progress.total > 60 && (
+              <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 6 }}>
+                Large playlist — importing the best match for each track in the background.
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+              <button className="chip press" onClick={cancel}>Cancel</button>
+            </div>
           </div>
         )}
 
@@ -205,7 +244,9 @@ export function ImportModal() {
               <span style={{ fontSize: 15, fontWeight: 700 }}>Imported “{result.title}”</span>
             </div>
             <p style={{ fontSize: 13, color: "var(--text-2)", margin: "0 0 18px" }}>
-              {result.tracks.length} track{result.tracks.length === 1 ? "" : "s"} saved as a playable playlist.
+              {summary
+                ? `${summary.matched} of ${summary.total} track${summary.total === 1 ? "" : "s"} matched and saved${summary.skipped ? ` · ${summary.skipped} couldn't be found` : ""}.`
+                : `${result.tracks.length} track${result.tracks.length === 1 ? "" : "s"} saved as a playable playlist.`}
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button className="chip press" onClick={close}>Close</button>

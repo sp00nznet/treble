@@ -42,7 +42,7 @@ rquickjs = { version = "0.9", features = ["bindgen"] }
 # every platform. yt-dlp remains an optional download accelerator (see downloads).
 default = ["native-catalog"]
 custom-protocol = ["tauri/custom-protocol"]
-native-catalog = ["dep:rustypipe", "dep:tokio"]
+native-catalog = ["dep:rustypipe", "dep:tokio", "dep:futures"]
 
 [dependencies.rustypipe]
 version = "0.11"
@@ -54,6 +54,10 @@ features = ["rustls-tls-webpki-roots"]
 [dependencies.tokio]
 version = "1"
 features = ["rt-multi-thread"]
+optional = true
+
+[dependencies.futures]
+version = "0.3"
 optional = true
 
 # The desktop catalog/download path shells out to `yt-dlp` (see core::catalog).
