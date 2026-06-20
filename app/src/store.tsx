@@ -26,6 +26,7 @@ interface State {
   durationSecs: number; // current track length
   pendingSeek: number | null; // UI requested a seek; AudioEngine applies & clears
   sleepEndsAt: number | null; // epoch ms when the sleep timer pauses playback
+  libRefresh: number; // bump to force library/detail screens to reload from the DB
 }
 
 type Action =
@@ -45,7 +46,8 @@ type Action =
   | { type: "setProgress"; position: number; duration: number }
   | { type: "seek"; secs: number }
   | { type: "seekDone" }
-  | { type: "setSleep"; endsAt: number | null };
+  | { type: "setSleep"; endsAt: number | null }
+  | { type: "refreshLibrary" };
 
 const initial: State = {
   screen: "home",
@@ -64,6 +66,7 @@ const initial: State = {
   durationSecs: 0,
   pendingSeek: null,
   sleepEndsAt: null,
+  libRefresh: 0,
 };
 
 function reducer(s: State, a: Action): State {
@@ -109,6 +112,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, pendingSeek: null };
     case "setSleep":
       return { ...s, sleepEndsAt: a.endsAt };
+    case "refreshLibrary":
+      return { ...s, libRefresh: s.libRefresh + 1 };
     default:
       return s;
   }

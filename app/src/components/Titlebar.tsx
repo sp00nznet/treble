@@ -1,6 +1,7 @@
 import { Search, ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
 import { useStore } from "../store";
 import { resolveTheme } from "../theme";
+import { Devices } from "./Devices";
 
 export function Titlebar() {
   const { state, dispatch } = useStore();
@@ -30,6 +31,7 @@ export function Titlebar() {
         </button>
       </div>
 
+      <Devices />
       <button
         className="press"
         onClick={() => dispatch({ type: "setThemePref", pref: isDark ? "light" : "dark" })}

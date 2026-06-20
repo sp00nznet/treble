@@ -9,16 +9,35 @@ edition = "2021"
 tauri-build = { version = "2.0.0", features = [] }
 
 [dependencies]
-tauri = { version = "2.0.0", features = [] }
+tauri = { version = "2.0.0", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Lightweight blocking HTTP (LRCLIB lyrics, JSON). No async runtime needed.
 ureq = { version = "2", features = ["json"] }
 # Local, portable library database. `bundled` compiles SQLite — no system dep.
 rusqlite = { version = "0.32", features = ["bundled"] }
+# Local-file library: tag reading + recursive scan.
+lofty = "0.24"
+walkdir = "2"
+# LAN sync + "send to device": zero-config mDNS discovery + the local IP for it.
+mdns-sd = "0.20"
+local-ip-address = "0.6"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
+# Native cross-platform catalog (InnerTube via rustypipe) — the Android-parity
+# engine. Off by default so the desktop build stays lean (it uses yt-dlp).
+native-catalog = ["dep:rustypipe", "dep:tokio"]
+
+[dependencies.rustypipe]
+version = "0.11"
+optional = true
+
+[dependencies.tokio]
+version = "1"
+features = ["rt-multi-thread"]
+optional = true
 
 # The desktop catalog/download path shells out to `yt-dlp` (see core::catalog).
 # The native cross-platform path (rustypipe / InnerTube) is the Android-parity

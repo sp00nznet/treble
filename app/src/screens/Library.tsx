@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Plus, Import } from "lucide-react";
+import { Plus, Import, FolderPlus, Loader2 } from "lucide-react";
 import { useStore } from "../store";
 import { LIBRARY } from "../data/mock";
-import { listPlaylists } from "../lib/api";
+import { listPlaylists, pickFolder, scanLocalFolder } from "../lib/api";
 import { isArtUrl, type LibraryItem } from "../types";
 
 const TABS = ["Playlists", "Albums", "Artists", "Podcasts", "Songs"];
@@ -22,16 +22,39 @@ export function Library() {
     return () => {
       live = false;
     };
-  }, [state.importOpen]);
+  }, [state.importOpen, state.libRefresh]);
+
+  const [scanning, setScanning] = useState(false);
 
   const items =
     tab === "Playlists" && playlists && playlists.length > 0 ? playlists : LIBRARY[tab] ?? LIBRARY.Playlists;
+
+  const addFolder = async () => {
+    const folder = await pickFolder();
+    if (!folder) return;
+    setScanning(true);
+    try {
+      await scanLocalFolder(folder);
+      dispatch({ type: "refreshLibrary" });
+      dispatch({ type: "setLibTab", tab: "Playlists" });
+    } finally {
+      setScanning(false);
+    }
+  };
 
   return (
     <div className="screen">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <h1 className="h1" style={{ fontSize: 30 }}>Your Library</h1>
         <div style={{ display: "flex", gap: 8 }}>
+          <button
+            className="chip press"
+            style={{ display: "flex", alignItems: "center", gap: 7 }}
+            onClick={addFolder}
+            disabled={scanning}
+          >
+            {scanning ? <Loader2 size={16} className="spin" /> : <FolderPlus size={16} />} {scanning ? "Scanning…" : "Add music folder"}
+          </button>
           <button
             className="chip press"
             style={{ display: "flex", alignItems: "center", gap: 7 }}

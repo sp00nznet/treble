@@ -26,7 +26,7 @@ export function Detail() {
     return () => {
       live = false;
     };
-  }, [state.detailId]);
+  }, [state.detailId, state.libRefresh]);
 
   const title = real?.title ?? mock.title;
   const art = real?.art || mock.art || ART[3];

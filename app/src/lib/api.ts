@@ -43,6 +43,18 @@ export interface ToolsStatus {
   ffmpeg: boolean;
 }
 
+export interface Peer {
+  device_id: string;
+  name: string;
+  addr: string;
+}
+
+/** A message sent to a peer device (mirrors core::sync::SendMessage). */
+export type SendMessage =
+  | { kind: "Track"; data: Track }
+  | { kind: "Playlist"; data: CorePlaylist }
+  | { kind: "Snapshot"; data: unknown };
+
 export interface DownloadProgress {
   id: string;
   pct: number;
@@ -87,9 +99,47 @@ export async function search(query: string): Promise<Track[]> {
   return invoke<Track[]>("search", { query });
 }
 
-/** Resolve a direct, streamable audio URL for a track id (temporary — fetch on play). */
+/** Resolve a playable audio URL for a track id (temporary for streams — fetch on play). */
 export async function resolveStream(id: string): Promise<string> {
+  // Local files play straight off disk via the asset protocol — no network.
+  if (id.startsWith("local:")) {
+    const { convertFileSrc } = await import("@tauri-apps/api/core");
+    return convertFileSrc(id.slice("local:".length));
+  }
   return invoke<string>("resolve_stream", { id });
+}
+
+// ---- local file library ----
+
+export async function pickFolder(): Promise<string | null> {
+  if (!isTauri()) return null;
+  return invoke<string | null>("pick_folder");
+}
+
+export async function scanLocalFolder(folder: string): Promise<CorePlaylist> {
+  return invoke<CorePlaylist>("scan_local_folder", { folder });
+}
+
+// ---- LAN sync / send-to-device ----
+
+export async function listPeers(): Promise<Peer[]> {
+  if (!isTauri()) return [];
+  return invoke<Peer[]>("list_peers");
+}
+
+export async function sendTo(peerId: string, message: SendMessage): Promise<void> {
+  return invoke<void>("send_to", { peerId, message });
+}
+
+/** Export the whole library as a portable snapshot (manual backup / sync unit). */
+export async function exportLibrary(): Promise<unknown> {
+  return invoke<unknown>("export_library");
+}
+
+/** Merge a snapshot (manual restore, or one received from a peer). Returns playlists merged. */
+export async function importLibrary(snapshot: unknown): Promise<number> {
+  if (!isTauri()) return 0;
+  return invoke<number>("import_library", { snapshot });
 }
 
 export async function getLyrics(t: Track): Promise<Lyrics> {

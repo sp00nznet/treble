@@ -4,11 +4,13 @@
 
 use crate::core::library::Library;
 use crate::core::models::{Lyrics, ParsedTrack, Playlist, Track};
-use crate::core::sync::Snapshot;
-use crate::core::{catalog, downloads, lyrics, spotify_import, sync, tools};
+use crate::core::sync::{Peer, SendMessage, Snapshot, SyncService};
+use crate::core::{catalog, downloads, local, lyrics, spotify_import, sync, tools};
 use serde::Serialize;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_dialog::DialogExt;
 
 type CmdResult<T> = std::result::Result<T, crate::core::error::CoreError>;
 
@@ -143,12 +145,46 @@ pub fn download_track(app: AppHandle, lib: State<Arc<Library>>, track: Track) ->
 
 /// Export the whole library as a portable snapshot (manual backup / sync unit).
 #[tauri::command]
-pub fn export_library(lib: State<Arc<Library>>) -> CmdResult<Snapshot> {
-    sync::export_snapshot(lib.inner(), "this-device")
+pub fn export_library(lib: State<Arc<Library>>, sync: State<Arc<SyncService>>) -> CmdResult<Snapshot> {
+    sync::export_snapshot(lib.inner(), sync.device_id())
 }
 
 /// Import a snapshot (manual restore / received from a peer). Returns playlists merged.
 #[tauri::command]
 pub fn import_library(lib: State<Arc<Library>>, snapshot: Snapshot) -> CmdResult<usize> {
     sync::import_snapshot(lib.inner(), &snapshot)
+}
+
+// ---- local file library ----
+
+/// Open a native folder picker; returns the chosen path (or null if cancelled).
+#[tauri::command]
+pub fn pick_folder(app: AppHandle) -> Option<String> {
+    app.dialog()
+        .file()
+        .blocking_pick_folder()
+        .and_then(|p| p.into_path().ok())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
+/// Scan a folder for audio files and save them as a "Local Files" playlist.
+#[tauri::command]
+pub fn scan_local_folder(lib: State<Arc<Library>>, folder: String) -> CmdResult<Playlist> {
+    let tracks = local::scan_folder(&PathBuf::from(&folder))?;
+    let id = lib.create_playlist("Local Files", &tracks)?;
+    lib.get_playlist(&id).map(|o| o.unwrap_or_default())
+}
+
+// ---- LAN sync / send-to-device ----
+
+/// Peers currently discovered on the local network.
+#[tauri::command]
+pub fn list_peers(sync: State<Arc<SyncService>>) -> Vec<Peer> {
+    sync.list_peers()
+}
+
+/// Send a track / playlist / snapshot to a peer by device id.
+#[tauri::command]
+pub fn send_to(sync: State<Arc<SyncService>>, peer_id: String, message: SendMessage) -> CmdResult<()> {
+    sync.send_to(&peer_id, &message)
 }

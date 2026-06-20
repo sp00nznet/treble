@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Play, ListPlus, ListMusic, Plus, Heart, Radio, Disc3, User, Download, Share2, ChevronRight, ChevronLeft,
+  MonitorSpeaker,
 } from "lucide-react";
 import { useStore } from "../store";
 import { PLAYLISTS } from "../data/mock";
-import { downloadTrack } from "../lib/api";
+import { downloadTrack, listPeers, sendTo, type Peer } from "../lib/api";
 
 /**
  * Right-click context menu for a track. Opens at the cursor (state.menu).
@@ -12,8 +13,15 @@ import { downloadTrack } from "../lib/api";
  */
 export function ContextMenu() {
   const { state, dispatch } = useStore();
-  const [view, setView] = useState<"main" | "playlists">("main");
+  const [view, setView] = useState<"main" | "playlists" | "send">("main");
+  const [peers, setPeers] = useState<Peer[]>([]);
   const menu = state.menu;
+
+  // Load LAN peers when the user opens the "Send to" sub-view.
+  useEffect(() => {
+    if (view === "send") listPeers().then(setPeers);
+  }, [view]);
+
   if (!menu) return null;
 
   const close = () => { setView("main"); dispatch({ type: "closeMenu" }); };
@@ -51,8 +59,31 @@ export function ContextMenu() {
               <Item icon={<User size={17} />} label="Go to artist" onClick={close} />
             </Group>
             <Group divider>
+              <Item icon={<MonitorSpeaker size={17} />} label="Send to device" chevron onClick={() => setView("send")} />
               <Item icon={<Download size={17} />} label="Download" onClick={() => { void downloadTrack(menu.track); dispatch({ type: "go", screen: "downloads" }); close(); }} />
               <Item icon={<Share2 size={17} />} label="Share" onClick={close} />
+            </Group>
+          </>
+        ) : view === "send" ? (
+          <>
+            <Group>
+              <Item icon={<ChevronLeft size={17} />} label="Back to menu" onClick={() => setView("main")} />
+            </Group>
+            <Group divider>
+              {peers.length === 0 ? (
+                <div style={{ padding: "10px 12px", fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.5 }}>
+                  No Treble devices on your network yet.
+                </div>
+              ) : (
+                peers.map((p) => (
+                  <Item
+                    key={p.device_id}
+                    icon={<MonitorSpeaker size={17} />}
+                    label={p.name}
+                    onClick={() => { void sendTo(p.device_id, { kind: "Track", data: menu.track }); close(); }}
+                  />
+                ))
+              )}
             </Group>
           </>
         ) : (
