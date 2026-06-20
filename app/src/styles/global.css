@@ -169,16 +169,20 @@ textarea {
 }
 .grid-5 {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* minmax(0,1fr) keeps every column the SAME width regardless of title length —
+     plain 1fr uses an auto minimum, so long-titled cards grew wider (and, with
+     aspect-ratio art, taller). */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
 }
 .grid-3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 .card {
   cursor: pointer;
+  min-width: 0; /* allow the card to shrink to its grid track so columns stay equal */
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-card);
