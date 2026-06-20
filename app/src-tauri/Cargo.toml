@@ -5,6 +5,12 @@ description = "Treble — warm cross-platform music client"
 authors = ["sp00nznet"]
 edition = "2021"
 
+# Library target so the mobile (Android) build can link the app as a cdylib and
+# call `run()` via the mobile entry point. Desktop uses the same lib from main.rs.
+[lib]
+name = "treble_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [build-dependencies]
 tauri-build = { version = "2.0.0", features = [] }
 
