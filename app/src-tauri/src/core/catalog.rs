@@ -203,19 +203,71 @@ pub(crate) fn parse_duration(s: &str) -> Option<u32> {
     Some(m.trim().parse::<u32>().ok()? * 60 + sec.trim().parse::<u32>().ok()?)
 }
 
+/// Drop bracketed promo junk like "(Official Video)", "[Lyrics]", "(Audio)" from
+/// a title while keeping meaningful parentheticals (e.g. "(Remastered)", "(feat …)").
+#[cfg_attr(feature = "native-catalog", allow(dead_code))]
+fn strip_promo_brackets(s: &str) -> String {
+    const JUNK: &[&str] = &[
+        "official", "lyric", "audio", "video", "visualizer", "visualiser",
+        "hd", "4k", "hq", "explicit", "color coded", "colour coded", "m/v", " mv",
+    ];
+    let mut out = String::new();
+    let mut buf = String::new();
+    let mut depth = 0;
+    let mut open = '(';
+    for ch in s.chars() {
+        match ch {
+            '(' | '[' if depth == 0 => { depth = 1; open = ch; buf.clear(); }
+            ')' | ']' if depth == 1 => {
+                depth = 0;
+                let low = buf.to_lowercase();
+                if !JUNK.iter().any(|k| low.contains(k)) {
+                    out.push(open);
+                    out.push_str(&buf);
+                    out.push(ch);
+                }
+            }
+            _ if depth == 1 => buf.push(ch),
+            _ => out.push(ch),
+        }
+    }
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Turn a raw YouTube video title + channel into a clean (title, artist).
+/// Handles the ubiquitous "Artist - Title (Official Video)" shape.
+#[cfg_attr(feature = "native-catalog", allow(dead_code))]
+fn clean_yt_title(raw_title: &str, channel: &str) -> (String, String) {
+    let cleaned = strip_promo_brackets(raw_title);
+    let chan = channel
+        .trim_end_matches(" - Topic")
+        .trim_end_matches("VEVO")
+        .trim()
+        .to_string();
+    // "Artist - Title" → split off the leading artist.
+    if let Some((a, rest)) = cleaned.split_once(" - ") {
+        let rest = rest.trim();
+        if !rest.is_empty() && !a.trim().is_empty() {
+            return (rest.to_string(), a.trim().to_string());
+        }
+    }
+    (cleaned.trim().to_string(), chan)
+}
+
 /// Best-effort map of a yt-dlp JSON object to a `Track`.
 #[cfg_attr(feature = "native-catalog", allow(dead_code))]
 fn track_from_json(v: &Value) -> Option<Track> {
     let id = v.get("id")?.as_str()?.to_string();
-    let title = v.get("title").and_then(Value::as_str).unwrap_or("Unknown").to_string();
-    let artist = v
+    let raw_title = v.get("title").and_then(Value::as_str).unwrap_or("Unknown");
+    let channel = v
         .get("uploader")
         .or_else(|| v.get("channel"))
         .or_else(|| v.get("artist"))
         .and_then(Value::as_str)
-        .unwrap_or("")
-        .trim_end_matches(" - Topic")
-        .to_string();
+        .unwrap_or("");
+    // YouTube titles are messy ("Artist - Title (Official Video)"); clean them so
+    // they display nicely AND so the LRCLIB lyrics lookup (title/artist) matches.
+    let (title, artist) = clean_yt_title(raw_title, channel);
     let duration_secs = v.get("duration").and_then(Value::as_f64).unwrap_or(0.0) as u32;
     // flat-playlist search results often omit thumbnails — derive one from the id.
     let art = {
