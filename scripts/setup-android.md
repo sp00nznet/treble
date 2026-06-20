@@ -102,6 +102,19 @@ app/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-
 >   --ks-pass pass:android app-universal-release-unsigned.apk
 > ```
 
+### Windows: the symlink gotcha
+
+`tauri android build` symlinks the compiled `.so` into the Gradle project, and
+Windows **blocks symlink creation** unless **Developer Mode** is on (Settings →
+Privacy & security → For developers → Developer Mode) or you run the build
+elevated. Two options:
+
+- **Enable Developer Mode** (recommended) — then `npm run android:build` works as written.
+- **No Developer Mode / not admin** — use **`scripts/build-apk-windows.ps1`**, which lets
+  Tauri compile the Rust `.so`, copies the native libs into `jniLibs` itself, runs Gradle
+  with the rust steps excluded, and signs the result. It produces a signed, sideloadable
+  `Treble-1.0.0-arm64.apk` (arm64 covers all modern phones).
+
 ## 6. Sideload onto your phone
 
 - **Via USB:** enable Developer Options + USB debugging, then `adb install path/to/app.apk`.

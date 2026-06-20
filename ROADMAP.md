@@ -23,8 +23,10 @@ Treble's UI is **done**; the backend is being wired up screen by screen. This is
 
 ## 🚧 In progress / next
 
-- [ ] **Android**: `tauri android init` + build the APK with `--features native-catalog`; native `MediaStyle`
-      notification, edge-to-edge insets, system back; verify on-device (needs SDK/NDK)
+- [x] **Android APK builds** — full native-catalog APK cross-compiles (rustls + rquickjs bindgen) and is
+      signed/sideloadable (arm64); Windows symlink workaround in `scripts/build-apk-windows.ps1`
+- [ ] **Android polish**: native `MediaStyle` notification, edge-to-edge insets, system back, scoped-storage
+      folder picker; multi-ABI universal APK; on-device QA
 - [ ] **Sync conflict resolution** — per-device clocks for the snapshot merge (currently last-writer-wins)
 - [ ] **Sent-playlist round-trip polish** — open the freshly-merged playlist by its new id after a Send
 - [ ] Make the mini-player & lyrics pop-outs real `WebviewWindow`s sharing core events
