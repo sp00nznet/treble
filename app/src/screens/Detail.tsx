@@ -4,15 +4,17 @@ import { useStore } from "../store";
 import { PLAYLISTS, TRACKS, ART } from "../data/mock";
 import { getPlaylist, type CorePlaylist } from "../lib/api";
 import { isArtUrl, type Track } from "../types";
+import { isTauri } from "../lib/windows";
 
 /**
  * Album/playlist detail. Loads the real playlist (incl. Spotify-imported ones)
- * from the library by `state.detailId`; falls back to mock data for the demo
- * playlists that don't exist in the DB yet.
+ * from the library by `state.detailId`. Mock data is used only for browser preview
+ * — the shipped app shows real tracks or an empty state.
  */
 export function Detail() {
   const { state, dispatch } = useStore();
-  const mock = PLAYLISTS.find((p) => p.id === state.detailId) ?? PLAYLISTS[1];
+  const demo = !isTauri();
+  const mock = demo ? PLAYLISTS.find((p) => p.id === state.detailId) ?? PLAYLISTS[1] : null;
   const [real, setReal] = useState<CorePlaylist | null>(null);
 
   useEffect(() => {
@@ -28,11 +30,11 @@ export function Detail() {
     };
   }, [state.detailId, state.libRefresh]);
 
-  const title = real?.title ?? mock.title;
-  const art = real?.art || mock.art || ART[3];
-  const tracks: Track[] = real?.tracks ?? TRACKS;
+  const title = real?.title ?? mock?.title ?? "Playlist";
+  const art = real?.art || mock?.art || (demo ? ART[3] : "var(--surface-2)");
+  const tracks: Track[] = real?.tracks ?? (demo ? TRACKS : []);
   const dates = ["2 days ago", "5 days ago", "1 week ago", "2 weeks ago", "3 weeks ago", "Mar 12", "Mar 8", "Feb 28"];
-  const subtitle = real ? `${tracks.length} songs` : "24 songs, 1h 38m";
+  const subtitle = real ? `${tracks.length} songs` : demo ? "24 songs, 1h 38m" : `${tracks.length} songs`;
 
   const playAll = () => tracks[0] && dispatch({ type: "play", track: tracks[0] });
 
@@ -44,11 +46,14 @@ export function Detail() {
           <div className="eyebrow" style={{ color: "var(--text-2)" }}>Playlist</div>
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 54, lineHeight: 1.02, letterSpacing: "-.03em", margin: "8px 0 14px" }}>{title}</h1>
           <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.5, maxWidth: 520 }}>
-            {real ? "Imported into Treble — matched on YouTube Music and ready to play." : "The slow-burn nocturne mix. Warm synths, lonely guitars, and headlights on an empty highway."}
+            {real
+              ? "Saved in Treble — matched on YouTube Music and ready to play."
+              : demo
+                ? "The slow-burn nocturne mix. Warm synths, lonely guitars, and headlights on an empty highway."
+                : "Your playlist."}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontSize: 13, color: "var(--text-2)" }}>
-            <span style={{ width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(135deg,#7A6CFF,#FF6B8B)" }} />
-            <span style={{ fontWeight: 700, color: "var(--text)" }}>Kaz</span><span>·</span><span>{subtitle}</span>
+            <span>{subtitle}</span>
           </div>
         </div>
       </header>
@@ -64,9 +69,13 @@ export function Detail() {
         <div style={{ display: "grid", gridTemplateColumns: "30px 1fr 1fr 90px 60px", gap: 16, padding: "0 12px 8px", borderBottom: "1px solid var(--border)", marginBottom: 6 }} className="eyebrow">
           <span>#</span><span>Title</span><span>Album</span><span>Date added</span><span style={{ textAlign: "right" }}><Clock size={15} /></span>
         </div>
-        {tracks.map((t, i) => (
-          <DetailRow key={t.id || i} index={i} date={dates[i % dates.length]} track={t} />
-        ))}
+        {tracks.length === 0 ? (
+          <div style={{ padding: "20px 12px", color: "var(--text-2)", fontSize: 14 }}>This playlist is empty.</div>
+        ) : (
+          tracks.map((t, i) => (
+            <DetailRow key={t.id || i} index={i} date={dates[i % dates.length]} track={t} />
+          ))
+        )}
       </div>
     </div>
   );

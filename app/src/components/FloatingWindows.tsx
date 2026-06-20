@@ -1,7 +1,11 @@
 import { Pin, X, Maximize2, SkipBack, SkipForward, Shuffle, Repeat, Play, Pause } from "lucide-react";
 import { useStore } from "../store";
-import { LYRICS } from "../data/mock";
 import { isTauri } from "../lib/windows";
+import { useSyncedLyrics } from "../lib/useSyncedLyrics";
+import { isArtUrl, type Track } from "../types";
+
+const artBg = (art?: string) =>
+  art && isArtUrl(art) ? `center/cover no-repeat url(${art})` : art || "rgba(255,255,255,.08)";
 
 /* ============================================================
    Presentational window bodies — used both as in-app overlays
@@ -9,22 +13,23 @@ import { isTauri } from "../lib/windows";
    ============================================================ */
 
 interface MiniProps {
+  track: Track | null;
   playing: boolean;
   onTogglePlay: () => void;
   onClose: () => void;
   onExpand: () => void;
 }
 
-export function MiniPlayerBody({ playing, onTogglePlay, onClose, onExpand }: MiniProps) {
+export function MiniPlayerBody({ track, playing, onTogglePlay, onClose, onExpand }: MiniProps) {
   return (
     <div style={{ width: "100%", height: "100%", background: "#171210", display: "flex", flexDirection: "column" }}>
       <WindowBar title="Mini player" onClose={onClose} />
-      <div style={{ position: "relative", flex: "none", height: 170, background: "linear-gradient(135deg,#FF6B8B,#FFA86B)" }}>
+      <div style={{ position: "relative", flex: "none", height: 170, background: artBg(track?.art) }}>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,transparent 35%,rgba(10,7,6,.82))" }} />
         <button className="press" onClick={onExpand} style={{ position: "absolute", top: 12, right: 12, width: 30, height: 30, borderRadius: 8, background: "rgba(0,0,0,.35)", color: "#fff", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Maximize2 size={15} /></button>
         <div style={{ position: "absolute", left: 16, right: 16, bottom: 14 }}>
-          <div className="ellipsis" style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 19, color: "#fff" }}>Midnight Coast</div>
-          <div className="ellipsis" style={{ fontSize: 13, color: "rgba(255,255,255,.75)" }}>Halsey Lane</div>
+          <div className="ellipsis" style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 19, color: "#fff" }}>{track?.title ?? "Nothing playing"}</div>
+          <div className="ellipsis" style={{ fontSize: 13, color: "rgba(255,255,255,.75)" }}>{track?.artist ?? ""}</div>
         </div>
       </div>
       <div style={{ padding: "14px 16px 16px", flex: 1 }}>
@@ -46,19 +51,27 @@ export function MiniPlayerBody({ playing, onTogglePlay, onClose, onExpand }: Min
 }
 
 export function LyricsBody({ onClose }: { onClose: () => void }) {
+  const { state } = useStore();
+  const track = state.nowPlaying;
+  const { lines, activeIndex } = useSyncedLyrics();
   return (
     <div style={{ width: "100%", height: "100%", background: "linear-gradient(180deg,#2a1518,#140f0d 70%)", display: "flex", flexDirection: "column" }}>
       <WindowBar title="Lyrics" onClose={onClose} />
       <div style={{ padding: "10px 22px 14px", display: "flex", alignItems: "center", gap: 12, flex: "none" }}>
-        <span style={{ width: 46, height: 46, borderRadius: 9, flex: "none", background: "linear-gradient(135deg,#FF6B8B,#FFA86B)" }} />
+        <span style={{ width: 46, height: 46, borderRadius: 9, flex: "none", background: artBg(track?.art) }} />
         <span style={{ minWidth: 0 }}>
-          <span className="ellipsis" style={{ display: "block", fontWeight: 700, fontSize: 15, color: "#fff" }}>Midnight Coast</span>
-          <span style={{ display: "block", fontSize: 12, color: "rgba(255,255,255,.6)" }}>Halsey Lane</span>
+          <span className="ellipsis" style={{ display: "block", fontWeight: 700, fontSize: 15, color: "#fff" }}>{track?.title ?? "Nothing playing"}</span>
+          <span style={{ display: "block", fontSize: 12, color: "rgba(255,255,255,.6)" }}>{track?.artist ?? ""}</span>
         </span>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 22px 24px", display: "flex", flexDirection: "column", gap: 15 }}>
-        {LYRICS.map((l, i) => (
-          <div key={i} style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: l.active ? 23 : 18, lineHeight: 1.22, letterSpacing: "-.01em", color: l.active ? "#FFB98A" : "rgba(255,255,255,.26)" }}>{l.text}</div>
+        {lines.length === 0 && (
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "rgba(255,255,255,.3)" }}>
+            {track ? "No lyrics found." : "Nothing playing."}
+          </div>
+        )}
+        {lines.map((l, i) => (
+          <div key={i} style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: i === activeIndex ? 23 : 18, lineHeight: 1.22, letterSpacing: "-.01em", color: i === activeIndex ? "#FFB98A" : "rgba(255,255,255,.26)" }}>{l.text}</div>
         ))}
       </div>
     </div>
@@ -89,6 +102,7 @@ export function MiniPlayer() {
   return (
     <div style={{ position: "fixed", right: 26, bottom: 26, zIndex: 60, width: 340, height: 300, borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,.5)", border: "1px solid rgba(255,255,255,.08)" }}>
       <MiniPlayerBody
+        track={state.nowPlaying}
         playing={state.playing}
         onTogglePlay={() => dispatch({ type: "togglePlay" })}
         onClose={() => dispatch({ type: "setMini", open: false })}

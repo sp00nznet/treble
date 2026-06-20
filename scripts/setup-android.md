@@ -45,6 +45,30 @@ Confirm: `adb --version` works and `echo $ANDROID_HOME` / `echo $env:ANDROID_HOM
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 ```
 
+## 3b. libclang + bindgen (needed by the native catalog)
+
+The native catalog (`rustypipe`) pulls **rquickjs**, which compiles QuickJS from C
+and generates bindings with **bindgen**. rquickjs-sys ships no prebuilt Android
+bindings, so bindgen runs at build time and needs **libclang**, the NDK **sysroot**,
+and clang's **builtin headers** (for `stdbool.h` etc.). Install LLVM (e.g.
+`winget install LLVM.LLVM`), then set these before building:
+
+```powershell
+# Windows — adjust the clang major version + NDK host folder to match yours
+$env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin'
+$sysroot = ($env:NDK_HOME -replace '\\','/') + '/toolchains/llvm/prebuilt/windows-x86_64/sysroot'
+$env:BINDGEN_EXTRA_CLANG_ARGS = "--sysroot=`"$sysroot`" -isystem `"C:/Program Files/LLVM/lib/clang/21/include`""
+```
+```bash
+# Linux/macOS equivalent (host folder is linux-x86_64 / darwin-x86_64)
+export LIBCLANG_PATH="$(llvm-config --libdir)"
+export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+```
+
+> Use forward slashes and quote any path with spaces — bindgen parses these args
+> shell-style. (You can skip all of this by building the APK *without* the
+> `native-catalog` feature, which drops the in-app YouTube Music engine.)
+
 ## 4. Initialize the Android project (once)
 
 From `app/`:

@@ -203,6 +203,8 @@ pub fn import_library(lib: State<Arc<Library>>, snapshot: Snapshot) -> CmdResult
 // ---- local file library ----
 
 /// Open a native folder picker; returns the chosen path (or null if cancelled).
+/// Desktop only — Android has no folder picker (scoped storage is a follow-up).
+#[cfg(desktop)]
 #[tauri::command]
 pub fn pick_folder(app: AppHandle) -> Option<String> {
     app.dialog()
@@ -210,6 +212,12 @@ pub fn pick_folder(app: AppHandle) -> Option<String> {
         .blocking_pick_folder()
         .and_then(|p| p.into_path().ok())
         .map(|p| p.to_string_lossy().into_owned())
+}
+
+#[cfg(mobile)]
+#[tauri::command]
+pub fn pick_folder(_app: AppHandle) -> Option<String> {
+    None
 }
 
 /// Scan a folder for audio files and save them as a "Local Files" playlist.

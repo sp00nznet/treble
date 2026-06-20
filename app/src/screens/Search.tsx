@@ -4,6 +4,7 @@ import { GENRES, RECENT_SEARCHES } from "../data/mock";
 import { search as apiSearch } from "../lib/api";
 import { isArtUrl, type Track } from "../types";
 import { useStore } from "../store";
+import { isTauri } from "../lib/windows";
 
 export function Search() {
   const { dispatch } = useStore();
@@ -57,15 +58,19 @@ export function Search() {
 
       {browsing ? (
         <>
-          <h2 className="h2" style={{ fontSize: 20, marginBottom: 14 }}>Recent searches</h2>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 36 }}>
-            {RECENT_SEARCHES.map((r) => (
-              <button key={r.label} onClick={() => setQuery(r.label)} className="chip press" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px 8px 8px", borderRadius: 24 }}>
-                <span style={{ width: 26, height: 26, borderRadius: "50%", background: r.art }} />
-                {r.label}
-              </button>
-            ))}
-          </div>
+          {!isTauri() && (
+            <>
+              <h2 className="h2" style={{ fontSize: 20, marginBottom: 14 }}>Recent searches</h2>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 36 }}>
+                {RECENT_SEARCHES.map((r) => (
+                  <button key={r.label} onClick={() => setQuery(r.label)} className="chip press" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px 8px 8px", borderRadius: 24 }}>
+                    <span style={{ width: 26, height: 26, borderRadius: "50%", background: r.art }} />
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           <h2 className="h2" style={{ fontSize: 20, marginBottom: 16 }}>Browse all</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>

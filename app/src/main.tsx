@@ -14,7 +14,9 @@ if (win === "mini" || win === "lyrics") {
   document.documentElement.setAttribute("data-theme", "dark");
   root.render(
     <React.StrictMode>
-      <StandaloneWindow kind={win as FloatingKind} />
+      <StoreProvider>
+        <StandaloneWindow kind={win as FloatingKind} />
+      </StoreProvider>
     </React.StrictMode>,
   );
 } else {

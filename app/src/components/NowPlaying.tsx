@@ -3,6 +3,7 @@ import { useStore } from "../store";
 import { Scrubber } from "./Scrubber";
 import { fmtTime } from "../lib/format";
 import { useSyncedLyrics } from "../lib/useSyncedLyrics";
+import { isArtUrl } from "../types";
 
 /**
  * Full-screen Now Playing — the "Lyrics split" signature view.
@@ -11,8 +12,8 @@ import { useSyncedLyrics } from "../lib/useSyncedLyrics";
 export function NowPlaying() {
   const { state, dispatch } = useStore();
   const np = state.nowPlaying;
-  const title = np?.title ?? "Midnight Coast";
-  const sub = np ? `${np.artist} · ${np.album}` : "Halsey Lane · Neon Tide";
+  const title = np?.title ?? "Nothing playing";
+  const sub = np ? [np.artist, np.album].filter(Boolean).join(" · ") : "";
   const { lines, activeIndex, seekToLine } = useSyncedLyrics();
 
   return (
@@ -29,7 +30,7 @@ export function NowPlaying() {
 
       {/* left: art + controls */}
       <div style={{ width: "46%", maxWidth: 560, flex: "none", background: "linear-gradient(180deg,#3a1c20,#140f0d 70%)", padding: "72px 56px 44px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ width: 300, height: 300, borderRadius: 18, background: "linear-gradient(135deg,#FF6B8B,#FFA86B)", boxShadow: "0 28px 64px rgba(0,0,0,.55)", marginBottom: 34 }} />
+        <div style={{ width: 300, height: 300, borderRadius: 18, background: np && isArtUrl(np.art) ? `center/cover no-repeat url(${np.art})` : np?.art || "rgba(255,255,255,.08)", boxShadow: "0 28px 64px rgba(0,0,0,.55)", marginBottom: 34 }} />
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 34, color: "#fff", letterSpacing: "-.01em" }}>{title}</div>
@@ -54,6 +55,11 @@ export function NowPlaying() {
 
       {/* right: lyrics */}
       <div style={{ flex: 1, minWidth: 0, padding: "72px 64px", overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 20 }}>
+        {lines.length === 0 && (
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 26, color: "rgba(255,255,255,.3)" }}>
+            {np ? "No lyrics found for this track." : "Nothing playing."}
+          </div>
+        )}
         {lines.map((l, i) => {
           const active = i === activeIndex;
           return (

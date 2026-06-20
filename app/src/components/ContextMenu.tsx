@@ -4,7 +4,7 @@ import {
   MonitorSpeaker,
 } from "lucide-react";
 import { useStore } from "../store";
-import { PLAYLISTS } from "../data/mock";
+import { usePlaylists } from "../lib/usePlaylists";
 import { downloadTrack, listPeers, sendTo, type Peer } from "../lib/api";
 
 /**
@@ -15,6 +15,7 @@ export function ContextMenu() {
   const { state, dispatch } = useStore();
   const [view, setView] = useState<"main" | "playlists" | "send">("main");
   const [peers, setPeers] = useState<Peer[]>([]);
+  const playlists = usePlaylists();
   const menu = state.menu;
 
   // Load LAN peers when the user opens the "Send to" sub-view.
@@ -93,9 +94,13 @@ export function ContextMenu() {
             </Group>
             <Group divider>
               <Item icon={<Plus size={17} />} label="New playlist" onClick={close} />
-              {PLAYLISTS.slice(0, 5).map((p) => (
-                <Item key={p.id} icon={<ListMusic size={17} />} label={p.title} onClick={close} />
-              ))}
+              {playlists.length === 0 ? (
+                <div style={{ padding: "8px 12px", fontSize: 12.5, color: "var(--text-3)" }}>No playlists yet.</div>
+              ) : (
+                playlists.map((p) => (
+                  <Item key={p.id} icon={<ListMusic size={17} />} label={p.title} onClick={close} />
+                ))
+              )}
             </Group>
           </>
         )}

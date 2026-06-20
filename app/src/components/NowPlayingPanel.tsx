@@ -4,6 +4,8 @@ import { toggleFloating } from "../lib/windows";
 import { Scrubber } from "./Scrubber";
 import { SleepTimer } from "./SleepTimer";
 import { fmtTime } from "../lib/format";
+import { useSyncedLyrics } from "../lib/useSyncedLyrics";
+import { isArtUrl } from "../types";
 
 /**
  * Persistent docked Now-Playing panel (the "Studio" layout signature — there is
@@ -13,8 +15,10 @@ import { fmtTime } from "../lib/format";
 export function NowPlayingPanel() {
   const { state, dispatch } = useStore();
   const np = state.nowPlaying;
-  const title = np?.title ?? "Midnight Coast";
-  const sub = np ? `${np.artist} · ${np.album}` : "Halsey Lane · Neon Tide";
+  const title = np?.title ?? "Nothing playing";
+  const sub = np ? [np.artist, np.album].filter(Boolean).join(" · ") : "Pick a song to start";
+  const { lines, activeIndex } = useSyncedLyrics();
+  const teaser = np ? lines.slice(Math.max(0, activeIndex), activeIndex + 3) : [];
 
   return (
     <aside className="player">
@@ -30,7 +34,7 @@ export function NowPlayingPanel() {
       <button
         className="press"
         onClick={() => dispatch({ type: "setNp", open: true })}
-        style={{ width: "100%", aspectRatio: "1", borderRadius: 16, border: "none", background: "linear-gradient(135deg,#FF6B8B,#FFA86B)", boxShadow: "0 16px 34px var(--shadow)", marginBottom: 18, cursor: "pointer" }}
+        style={{ width: "100%", aspectRatio: "1", borderRadius: 16, border: "none", background: np && isArtUrl(np.art) ? `center/cover no-repeat url(${np.art})` : np?.art || "var(--surface-2)", boxShadow: "0 16px 34px var(--shadow)", marginBottom: 18, cursor: "pointer" }}
       />
 
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
@@ -68,20 +72,22 @@ export function NowPlayingPanel() {
 
       <div style={{ flex: 1 }} />
 
-      <button
-        onClick={() => dispatch({ type: "setNp", open: true })}
-        style={{ textAlign: "left", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 13, padding: "15px 16px", cursor: "pointer" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
-          <span className="eyebrow" style={{ color: "var(--accent)" }}>Lyrics</span>
-          <ExternalLink size={14} style={{ color: "var(--text-3)" }} onClick={(e) => { e.stopPropagation(); toggleFloating("lyrics", true, () => dispatch({ type: "setLyrics", open: true })); }} />
-        </div>
-        <div style={{ fontSize: 13.5, lineHeight: 1.7, color: "var(--text-3)" }}>
-          Engine humming low and slow<br />
-          <span style={{ color: "var(--text)", fontWeight: 600 }}>Driving down the midnight coast</span><br />
-          Headlights chasing yesterday
-        </div>
-      </button>
+      {teaser.length > 0 && (
+        <button
+          onClick={() => dispatch({ type: "setNp", open: true })}
+          style={{ textAlign: "left", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 13, padding: "15px 16px", cursor: "pointer" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
+            <span className="eyebrow" style={{ color: "var(--accent)" }}>Lyrics</span>
+            <ExternalLink size={14} style={{ color: "var(--text-3)" }} onClick={(e) => { e.stopPropagation(); toggleFloating("lyrics", true, () => dispatch({ type: "setLyrics", open: true })); }} />
+          </div>
+          <div style={{ fontSize: 13.5, lineHeight: 1.7, color: "var(--text-3)" }}>
+            {teaser.map((l, i) => (
+              <span key={i} style={{ display: "block", color: i === 0 ? "var(--text)" : "var(--text-3)", fontWeight: i === 0 ? 600 : 400 }}>{l.text}</span>
+            ))}
+          </div>
+        </button>
+      )}
     </aside>
   );
 }

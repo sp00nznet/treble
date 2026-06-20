@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store";
 import { getLyrics, type LyricLine } from "./api";
 import { LYRICS } from "../data/mock";
+import { isTauri } from "./windows";
 
 export function useSyncedLyrics() {
   const { state, dispatch } = useStore();
@@ -61,8 +62,13 @@ export function useSyncedLyrics() {
   return { lines, activeIndex, synced, seekToLine };
 }
 
-/** Spread the mock lyric lines across the track so the active line advances in preview. */
+/**
+ * Browser-preview only: spread the mock lyric lines across the track so the active
+ * line advances. In the shipped app there's no fabricated fallback — a track with
+ * no lyrics simply shows none.
+ */
 function fallbackLines(durationSecs: number): LyricLine[] {
+  if (isTauri()) return [];
   const dur = durationSecs > 0 ? durationSecs : 200;
   const step = dur / (LYRICS.length + 1);
   return LYRICS.map((l, i) => ({ time_secs: step * (i + 1), text: l.text }));

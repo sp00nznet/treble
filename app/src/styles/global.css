@@ -322,6 +322,35 @@ body {
   color: var(--text-2);
   cursor: pointer;
 }
+
+/* Windows-style caption buttons, right edge of the titlebar. */
+.winctl {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin-left: 4px;
+  -webkit-app-region: no-drag;
+}
+.winctl-btn {
+  width: 44px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  border-radius: 7px;
+}
+.winctl-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.winctl-close:hover {
+  background: #e0463e;
+  color: #fff;
+}
 .icon-btn:hover {
   background: var(--surface-2);
   color: var(--text);

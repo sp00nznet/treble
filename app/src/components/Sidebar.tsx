@@ -1,7 +1,7 @@
 import { Home, Search, Compass, Library, Download, Settings, Plus } from "lucide-react";
 import { useStore } from "../store";
-import { PLAYLISTS } from "../data/mock";
-import type { Screen } from "../types";
+import { usePlaylists } from "../lib/usePlaylists";
+import { isArtUrl, type Screen } from "../types";
 
 const NAV: { key: Screen; label: string; Icon: typeof Home }[] = [
   { key: "home", label: "Home", Icon: Home },
@@ -14,6 +14,7 @@ const NAV: { key: Screen; label: string; Icon: typeof Home }[] = [
 
 export function Sidebar() {
   const { state, dispatch } = useStore();
+  const playlists = usePlaylists();
   const active = (k: Screen) =>
     state.screen === k || (k === "library" && state.screen === "detail");
 
@@ -41,20 +42,26 @@ export function Sidebar() {
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", margin: "0 -4px", padding: "0 4px" }}>
-        {PLAYLISTS.map((p) => (
-          <button
-            key={p.id}
-            className="navitem"
-            style={{ padding: "6px 11px" }}
-            onClick={() => dispatch({ type: "openDetail", id: p.id })}
-          >
-            <span style={{ width: 34, height: 34, borderRadius: 7, flex: "none", background: p.art }} />
-            <span style={{ minWidth: 0 }}>
-              <span className="ellipsis" style={{ display: "block", fontSize: 13, fontWeight: 600 }}>{p.title}</span>
-              <span className="ellipsis" style={{ display: "block", fontSize: 12, color: "var(--text-3)", fontWeight: 500 }}>{p.subtitle}</span>
-            </span>
-          </button>
-        ))}
+        {playlists.length === 0 ? (
+          <div style={{ padding: "8px 11px", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+            No playlists yet. Import from Spotify or add a music folder in your Library.
+          </div>
+        ) : (
+          playlists.map((p) => (
+            <button
+              key={p.id}
+              className="navitem"
+              style={{ padding: "6px 11px" }}
+              onClick={() => dispatch({ type: "openDetail", id: p.id })}
+            >
+              <span style={{ width: 34, height: 34, borderRadius: 7, flex: "none", background: isArtUrl(p.art) ? `center/cover no-repeat url(${p.art})` : p.art || "var(--surface-2)" }} />
+              <span style={{ minWidth: 0 }}>
+                <span className="ellipsis" style={{ display: "block", fontSize: 13, fontWeight: 600 }}>{p.title}</span>
+                <span className="ellipsis" style={{ display: "block", fontSize: 12, color: "var(--text-3)", fontWeight: 500 }}>{p.subtitle}</span>
+              </span>
+            </button>
+          ))
+        )}
       </div>
     </nav>
   );

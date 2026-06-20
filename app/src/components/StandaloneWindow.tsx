@@ -34,7 +34,7 @@ export function StandaloneWindow({ kind }: { kind: FloatingKind }) {
   return (
     <div style={{ position: "fixed", inset: 0 }}>
       {kind === "mini" ? (
-        <MiniPlayerBody playing={playing} onTogglePlay={() => setPlaying((p) => !p)} onClose={close} onExpand={expand} />
+        <MiniPlayerBody track={null} playing={playing} onTogglePlay={() => setPlaying((p) => !p)} onClose={close} onExpand={expand} />
       ) : (
         <LyricsBody onClose={close} />
       )}
