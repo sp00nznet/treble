@@ -1,6 +1,8 @@
 import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Play, Pause, Minimize2 } from "lucide-react";
 import { useStore } from "../store";
-import { LYRICS } from "../data/mock";
+import { Scrubber } from "./Scrubber";
+import { fmtTime } from "../lib/format";
+import { useSyncedLyrics } from "../lib/useSyncedLyrics";
 
 /**
  * Full-screen Now Playing — the "Lyrics split" signature view.
@@ -11,6 +13,7 @@ export function NowPlaying() {
   const np = state.nowPlaying;
   const title = np?.title ?? "Midnight Coast";
   const sub = np ? `${np.artist} · ${np.album}` : "Halsey Lane · Neon Tide";
+  const { lines, activeIndex, seekToLine } = useSyncedLyrics();
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", background: "#140f0d" }}>
@@ -34,10 +37,10 @@ export function NowPlaying() {
           </div>
           <Heart size={26} className="press" style={{ color: "#FF9A5C", marginTop: 8 }} fill="currentColor" />
         </div>
-        <div style={{ margin: "30px 0 7px", height: 5, borderRadius: 3, background: "rgba(255,255,255,.16)", position: "relative" }}>
-          <div style={{ position: "absolute", inset: "0 58% 0 0", background: "linear-gradient(90deg,#FFB35C,#FF6B5C)", borderRadius: 3 }} />
+        <div style={{ margin: "30px 0 7px" }}>
+          <Scrubber theme="dark" />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "rgba(255,255,255,.5)" }}><span>1:42</span><span>3:58</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "rgba(255,255,255,.5)" }}><span>{fmtTime(state.positionSecs)}</span><span>{fmtTime(state.durationSecs)}</span></div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 30, marginTop: 26, color: "#fff" }}>
           <Shuffle size={24} className="press" />
           <SkipBack size={28} className="press" fill="currentColor" />
@@ -51,11 +54,18 @@ export function NowPlaying() {
 
       {/* right: lyrics */}
       <div style={{ flex: 1, minWidth: 0, padding: "72px 64px", overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 20 }}>
-        {LYRICS.map((l, i) => (
-          <div key={i} style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: l.active ? 42 : 30, lineHeight: 1.18, letterSpacing: "-.01em", color: l.active ? "#FFB98A" : "rgba(255,255,255,.24)", cursor: "pointer", transition: "color .3s" }}>
-            {l.text}
-          </div>
-        ))}
+        {lines.map((l, i) => {
+          const active = i === activeIndex;
+          return (
+            <div
+              key={i}
+              onClick={() => seekToLine(i)}
+              style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: active ? 42 : 30, lineHeight: 1.18, letterSpacing: "-.01em", color: active ? "#FFB98A" : "rgba(255,255,255,.24)", cursor: "pointer", transition: "color .3s, font-size .2s" }}
+            >
+              {l.text}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from "react
 import type { ReactNode } from "react";
 import type { AccentName, Screen, ThemePref, Track } from "./types";
 import { applyTheme, resolveTheme } from "./theme";
+import { trackDuration } from "./lib/format";
 
 /**
  * Minimal app store via Context + useReducer. This intentionally maps 1:1 to the
@@ -21,6 +22,10 @@ interface State {
   nowPlaying: Track | null;
   menu: { x: number; y: number; track: Track } | null; // right-click context menu
   importOpen: boolean; // Spotify import modal
+  positionSecs: number; // live playback position (driven by AudioEngine)
+  durationSecs: number; // current track length
+  pendingSeek: number | null; // UI requested a seek; AudioEngine applies & clears
+  sleepEndsAt: number | null; // epoch ms when the sleep timer pauses playback
 }
 
 type Action =
@@ -36,7 +41,11 @@ type Action =
   | { type: "setLyrics"; open: boolean }
   | { type: "openMenu"; x: number; y: number; track: Track }
   | { type: "closeMenu" }
-  | { type: "setImport"; open: boolean };
+  | { type: "setImport"; open: boolean }
+  | { type: "setProgress"; position: number; duration: number }
+  | { type: "seek"; secs: number }
+  | { type: "seekDone" }
+  | { type: "setSleep"; endsAt: number | null };
 
 const initial: State = {
   screen: "home",
@@ -51,6 +60,10 @@ const initial: State = {
   nowPlaying: null,
   menu: null,
   importOpen: false,
+  positionSecs: 0,
+  durationSecs: 0,
+  pendingSeek: null,
+  sleepEndsAt: null,
 };
 
 function reducer(s: State, a: Action): State {
@@ -68,7 +81,14 @@ function reducer(s: State, a: Action): State {
     case "togglePlay":
       return { ...s, playing: !s.playing };
     case "play":
-      return { ...s, nowPlaying: a.track, playing: true };
+      return {
+        ...s,
+        nowPlaying: a.track,
+        playing: true,
+        positionSecs: 0,
+        durationSecs: trackDuration(a.track),
+        pendingSeek: null,
+      };
     case "setNp":
       return { ...s, npOpen: a.open };
     case "setMini":
@@ -81,6 +101,14 @@ function reducer(s: State, a: Action): State {
       return { ...s, menu: null };
     case "setImport":
       return { ...s, importOpen: a.open };
+    case "setProgress":
+      return { ...s, positionSecs: a.position, durationSecs: a.duration || s.durationSecs };
+    case "seek":
+      return { ...s, positionSecs: a.secs, pendingSeek: a.secs };
+    case "seekDone":
+      return { ...s, pendingSeek: null };
+    case "setSleep":
+      return { ...s, sleepEndsAt: a.endsAt };
     default:
       return s;
   }

@@ -1,6 +1,9 @@
 import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Play, Pause, Maximize2, ExternalLink, ListMusic, Volume2 } from "lucide-react";
 import { useStore } from "../store";
 import { toggleFloating } from "../lib/windows";
+import { Scrubber } from "./Scrubber";
+import { SleepTimer } from "./SleepTimer";
+import { fmtTime } from "../lib/format";
 
 /**
  * Persistent docked Now-Playing panel (the "Studio" layout signature — there is
@@ -17,7 +20,8 @@ export function NowPlayingPanel() {
     <aside className="player">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <span className="eyebrow">Now playing</span>
-        <div style={{ display: "flex", gap: 6, color: "var(--text-2)" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", color: "var(--text-2)" }}>
+          <SleepTimer />
           <ExternalLink size={17} className="press" onClick={() => toggleFloating("mini", true, () => dispatch({ type: "setMini", open: true }))} />
           <Maximize2 size={17} className="press" onClick={() => dispatch({ type: "setNp", open: true })} />
         </div>
@@ -37,11 +41,11 @@ export function NowPlayingPanel() {
         <Heart size={18} className="press" style={{ color: "var(--accent)" }} fill="currentColor" />
       </div>
 
-      <div style={{ margin: "18px 0 6px", height: 5, borderRadius: 3, background: "var(--surface-2)", position: "relative" }}>
-        <div style={{ position: "absolute", inset: "0 58% 0 0", background: "var(--accent-grad)", borderRadius: 3 }} />
+      <div style={{ margin: "18px 0 6px" }}>
+        <Scrubber />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-3)" }}>
-        <span>1:42</span><span>3:58</span>
+        <span>{fmtTime(state.positionSecs)}</span><span>{fmtTime(state.durationSecs)}</span>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 16, color: "var(--text-2)" }}>
