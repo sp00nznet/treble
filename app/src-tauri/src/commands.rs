@@ -8,7 +8,7 @@ use crate::core::sync::{Peer, SendMessage, Snapshot, SyncService};
 use crate::core::podcasts::{self, Podcast};
 use crate::core::{catalog, downloads, local, lyrics, spotify_import, sync, tools};
 use serde::Serialize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -417,41 +417,183 @@ struct DownloadProgress {
     error: Option<String>,
 }
 
+/// Where downloads land: the user-configured folder, else `<app-data>/downloads`.
+fn downloads_dir(app: &AppHandle, lib: &Library) -> PathBuf {
+    if let Ok(Some(d)) = lib.get_setting("download_dir") {
+        if !d.trim().is_empty() {
+            return PathBuf::from(d);
+        }
+    }
+    app.path()
+        .app_data_dir()
+        .map(|d| d.join("downloads"))
+        .unwrap_or_else(|_| PathBuf::from("downloads"))
+}
+
+/// Map the user's quality preference to a yt-dlp `--audio-quality` value.
+fn quality_arg(lib: &Library) -> String {
+    match lib.get_setting("quality").ok().flatten().as_deref() {
+        Some("low") => "7",
+        Some("normal") => "5",
+        Some("high") => "2",
+        _ => "0", // "best" / unset
+    }
+    .to_string()
+}
+
+/// Fetch one track to `dir`, emitting `download:progress`. Blocking — callers run
+/// it on a background thread (one-shot for `download_track`, in a loop for
+/// `download_many`). Records the file in the library and ensures the row exists.
+fn run_download(app: &AppHandle, lib: &Library, dir: &Path, quality: &str, track: &Track) {
+    let id = track.id.clone();
+    let emit = |pct: f32, done: bool, error: Option<String>| {
+        let _ = app.emit("download:progress", DownloadProgress { id: id.clone(), pct, done, error });
+    };
+    // Already downloaded? report done immediately.
+    if matches!(lib.downloaded_path(&track.id), Ok(Some(p)) if std::path::Path::new(&p).is_file()) {
+        emit(100.0, true, None);
+        return;
+    }
+    // Prefer yt-dlp (best quality + mp3) when available; otherwise fetch the
+    // resolved stream URL directly so downloads work with no external tools.
+    let result = if tools::ensure_ytdlp() {
+        downloads::download(&track.id, dir, quality, |pct| emit(pct, false, None))
+    } else {
+        match catalog::resolve_stream(&track.id) {
+            Ok(url) => downloads::download_native(&url, dir, &track.id, |pct| emit(pct, false, None)),
+            Err(e) => Err(e),
+        }
+    };
+    match result {
+        Ok(path) => {
+            // Make sure the track row exists before flagging it downloaded.
+            let _ = lib.ensure_track(track);
+            let _ = lib.mark_downloaded(&track.id, &path.to_string_lossy());
+            emit(100.0, true, None);
+        }
+        Err(e) => emit(0.0, true, Some(e.to_string())),
+    }
+}
+
 /// Download a track for offline playback. Runs on a background thread and streams
 /// `download:progress` events; the final event has `done: true`.
 #[tauri::command]
 pub fn download_track(app: AppHandle, lib: State<Arc<Library>>, track: Track) -> CmdResult<()> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
-        .join("downloads");
+    let dir = downloads_dir(&app, &lib);
+    let quality = quality_arg(&lib);
+    let lib = lib.inner().clone();
+    std::thread::spawn(move || run_download(&app, &lib, &dir, &quality, &track));
+    Ok(())
+}
+
+/// Download many tracks (a whole playlist) sequentially on a single background
+/// thread, so we never spawn hundreds of yt-dlp processes at once. Each track
+/// streams its own `download:progress` events keyed by track id.
+#[tauri::command]
+pub fn download_many(app: AppHandle, lib: State<Arc<Library>>, tracks: Vec<Track>) -> CmdResult<()> {
+    let dir = downloads_dir(&app, &lib);
+    let quality = quality_arg(&lib);
     let lib = lib.inner().clone();
     std::thread::spawn(move || {
-        let id = track.id.clone();
-        let emit = |pct: f32, done: bool, error: Option<String>| {
-            let _ = app.emit("download:progress", DownloadProgress { id: id.clone(), pct, done, error });
-        };
-        // Prefer yt-dlp (best quality + mp3) when available; otherwise fetch the
-        // resolved stream URL directly so downloads work with no external tools.
-        let result = if tools::ensure_ytdlp() {
-            downloads::download(&track.id, &dir, |pct| emit(pct, false, None))
-        } else {
-            match catalog::resolve_stream(&track.id) {
-                Ok(url) => downloads::download_native(&url, &dir, &track.id, |pct| emit(pct, false, None)),
-                Err(e) => Err(e),
-            }
-        };
-        match result {
-            Ok(path) => {
-                let _ = lib.create_playlist("Downloads", std::slice::from_ref(&track)); // ensure track row exists
-                let _ = lib.mark_downloaded(&track.id, &path.to_string_lossy());
-                emit(100.0, true, None);
-            }
-            Err(e) => emit(0.0, true, Some(e.to_string())),
+        crate::tlog!("download_many: {} tracks", tracks.len());
+        for t in &tracks {
+            run_download(&app, &lib, &dir, &quality, t);
         }
+        crate::tlog!("download_many: done");
     });
     Ok(())
+}
+
+/// The local file path of a downloaded track (so playback can prefer it over
+/// streaming). Returns null if not downloaded or the file is missing.
+#[tauri::command]
+pub fn downloaded_path(lib: State<Arc<Library>>, id: String) -> Option<String> {
+    match lib.downloaded_path(&id) {
+        Ok(Some(p)) if std::path::Path::new(&p).is_file() => Some(p),
+        _ => None,
+    }
+}
+
+// ---- liked songs ----
+
+#[tauri::command]
+pub fn like_track(lib: State<Arc<Library>>, track: Track) -> CmdResult<()> {
+    lib.like(&track)
+}
+
+#[tauri::command]
+pub fn unlike_track(lib: State<Arc<Library>>, id: String) -> CmdResult<()> {
+    lib.unlike(&id)
+}
+
+#[tauri::command]
+pub fn list_liked(lib: State<Arc<Library>>) -> CmdResult<Vec<Track>> {
+    lib.list_liked()
+}
+
+/// Append a track to an existing playlist.
+#[tauri::command]
+pub fn add_to_playlist(lib: State<Arc<Library>>, playlist_id: String, track: Track) -> CmdResult<()> {
+    lib.add_to_playlist(&playlist_id, &track)
+}
+
+#[tauri::command]
+pub fn liked_ids(lib: State<Arc<Library>>) -> CmdResult<Vec<String>> {
+    lib.liked_ids()
+}
+
+// ---- settings + storage ----
+
+#[tauri::command]
+pub fn get_setting(lib: State<Arc<Library>>, key: String) -> CmdResult<Option<String>> {
+    lib.get_setting(&key)
+}
+
+#[tauri::command]
+pub fn set_setting(lib: State<Arc<Library>>, key: String, value: String) -> CmdResult<()> {
+    lib.set_setting(&key, &value)
+}
+
+/// Where downloads currently land (the configured folder, or the default).
+#[tauri::command]
+pub fn get_download_dir(app: AppHandle, lib: State<Arc<Library>>) -> String {
+    downloads_dir(&app, &lib).to_string_lossy().into_owned()
+}
+
+#[derive(Serialize)]
+pub struct StorageStats {
+    bytes: u64,
+    count: usize,
+}
+
+/// Total size + count of downloaded files (for the Settings storage card).
+#[tauri::command]
+pub fn storage_stats(lib: State<Arc<Library>>) -> StorageStats {
+    let paths = lib.downloaded_paths().unwrap_or_default();
+    let mut bytes = 0u64;
+    let mut count = 0usize;
+    for p in &paths {
+        if let Ok(meta) = std::fs::metadata(p) {
+            bytes += meta.len();
+            count += 1;
+        }
+    }
+    StorageStats { bytes, count }
+}
+
+/// Delete every downloaded file and reset the library's download flags.
+#[tauri::command]
+pub fn clear_downloads(lib: State<Arc<Library>>) -> CmdResult<usize> {
+    let paths = lib.downloaded_paths().unwrap_or_default();
+    let mut removed = 0;
+    for p in &paths {
+        if std::fs::remove_file(p).is_ok() {
+            removed += 1;
+        }
+    }
+    lib.clear_downloaded()?;
+    crate::tlog!("clear_downloads: removed {} files", removed);
+    Ok(removed)
 }
 
 /// Export the whole library as a portable snapshot (manual backup / sync unit).

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { AccentName, Screen, ThemePref, Track } from "./types";
 import { applyTheme, resolveTheme } from "./theme";
 import { trackDuration } from "./lib/format";
+import { likedIds as fetchLikedIds } from "./lib/api";
 
 /**
  * Minimal app store via Context + useReducer. This intentionally maps 1:1 to the
@@ -33,6 +34,17 @@ interface State {
   back: NavEntry[]; // navigation history (back stack)
   forward: NavEntry[]; // navigation history (forward stack)
   podcast: { feedUrl: string; title: string; author: string; art: string } | null; // open show
+  // --- play queue / playback context ---
+  srcQueue: Track[]; // the queue in its original (unshuffled) order
+  queue: Track[]; // effective play order (== srcQueue, or shuffled)
+  queueIndex: number; // index of nowPlaying within `queue`
+  shuffle: boolean;
+  repeat: "off" | "all" | "one";
+  playToken: number; // bumps to force a replay of the same track (repeat one / restart)
+  // --- liked songs ---
+  likedIds: string[]; // ids of liked tracks (mirrors the DB for quick lookup)
+  // --- search seeding (Go to artist / album) ---
+  pendingSearch: string | null;
 }
 
 interface NavEntry {
@@ -47,7 +59,18 @@ type Action =
   | { type: "setAccent"; accent: AccentName }
   | { type: "setLibTab"; tab: string }
   | { type: "togglePlay" }
-  | { type: "play"; track: Track }
+  | { type: "play"; track: Track; queue?: Track[] }
+  | { type: "next"; auto?: boolean } // auto = fired by track-end (honors repeat one)
+  | { type: "prev" }
+  | { type: "enqueue"; track: Track } // add to end of queue
+  | { type: "playNext"; track: Track } // insert right after current
+  | { type: "clearQueue" }
+  | { type: "toggleShuffle" }
+  | { type: "cycleRepeat" }
+  | { type: "setLiked"; ids: string[] }
+  | { type: "toggleLikedLocal"; id: string; liked: boolean }
+  | { type: "seedSearch"; query: string }
+  | { type: "clearSearchSeed" }
   | { type: "setNp"; open: boolean }
   | { type: "setMini"; open: boolean }
   | { type: "setLyrics"; open: boolean }
@@ -67,7 +90,7 @@ type Action =
   | { type: "setAutoDownload"; on: boolean };
 
 const initial: State = {
-  screen: "home",
+  screen: (() => { try { return (localStorage.getItem("treble.defaultTab") as Screen) || "home"; } catch { return "home"; } })(),
   detailId: null,
   themePref: "light",
   accent: "Amber",
@@ -90,7 +113,35 @@ const initial: State = {
   back: [],
   forward: [],
   podcast: null,
+  srcQueue: [],
+  queue: [],
+  queueIndex: 0,
+  shuffle: (() => { try { return localStorage.getItem("treble.shuffle") === "1"; } catch { return false; } })(),
+  repeat: (() => { try { return (localStorage.getItem("treble.repeat") as State["repeat"]) || "off"; } catch { return "off"; } })(),
+  playToken: 0,
+  likedIds: [],
+  pendingSearch: null,
 };
+
+/** Fisher–Yates shuffle of a copy (browser Math.random is fine here). */
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Build the effective play order for a queue + current track, honoring shuffle. */
+function orderFor(src: Track[], current: Track, shuffle: boolean): { queue: Track[]; index: number } {
+  if (!shuffle) {
+    const index = Math.max(0, src.findIndex((t) => t.id === current.id));
+    return { queue: src, index };
+  }
+  const rest = src.filter((t) => t.id !== current.id);
+  return { queue: [current, ...shuffled(rest)], index: 0 };
+}
 
 function reducer(s: State, a: Action): State {
   switch (a.type) {
@@ -119,16 +170,77 @@ function reducer(s: State, a: Action): State {
       return { ...s, libTab: a.tab };
     case "togglePlay":
       return { ...s, playing: !s.playing };
-    case "play":
+    case "play": {
+      const src = a.queue && a.queue.length ? a.queue : [a.track];
+      const { queue, index } = orderFor(src, a.track, s.shuffle);
       return {
         ...s,
         nowPlaying: a.track,
+        srcQueue: src,
+        queue,
+        queueIndex: index,
         playing: true,
         loading: true,
         positionSecs: 0,
         durationSecs: trackDuration(a.track),
         pendingSeek: null,
+        playToken: s.playToken + 1,
       };
+    }
+    case "next": {
+      if (s.queue.length === 0) return s;
+      // Auto-advance (track ended) with repeat-one → replay the same track.
+      if (a.auto && s.repeat === "one") {
+        return { ...s, positionSecs: 0, playing: true, loading: true, playToken: s.playToken + 1 };
+      }
+      let i = s.queueIndex + 1;
+      if (i >= s.queue.length) {
+        if (s.repeat === "all") i = 0;
+        else return { ...s, playing: false }; // end of queue
+      }
+      const track = s.queue[i];
+      return { ...s, nowPlaying: track, queueIndex: i, playing: true, loading: true, positionSecs: 0, durationSecs: trackDuration(track), pendingSeek: null, playToken: s.playToken + 1 };
+    }
+    case "prev": {
+      if (s.queue.length === 0) return s;
+      const i = Math.max(0, s.queueIndex - 1);
+      const track = s.queue[i];
+      return { ...s, nowPlaying: track, queueIndex: i, playing: true, loading: true, positionSecs: 0, durationSecs: trackDuration(track), pendingSeek: null, playToken: s.playToken + 1 };
+    }
+    case "enqueue":
+      if (!s.nowPlaying) return reducer(s, { type: "play", track: a.track });
+      return { ...s, srcQueue: [...s.srcQueue, a.track], queue: [...s.queue, a.track] };
+    case "playNext": {
+      if (!s.nowPlaying) return reducer(s, { type: "play", track: a.track });
+      const q = [...s.queue];
+      q.splice(s.queueIndex + 1, 0, a.track);
+      return { ...s, queue: q, srcQueue: [...s.srcQueue, a.track] };
+    }
+    case "clearQueue": {
+      if (!s.nowPlaying) return { ...s, srcQueue: [], queue: [], queueIndex: 0 };
+      return { ...s, srcQueue: [s.nowPlaying], queue: [s.nowPlaying], queueIndex: 0 };
+    }
+    case "toggleShuffle": {
+      const shuffle = !s.shuffle;
+      try { localStorage.setItem("treble.shuffle", shuffle ? "1" : "0"); } catch { /* ignore */ }
+      if (!s.nowPlaying) return { ...s, shuffle };
+      const { queue, index } = orderFor(s.srcQueue.length ? s.srcQueue : s.queue, s.nowPlaying, shuffle);
+      return { ...s, shuffle, queue, queueIndex: index };
+    }
+    case "cycleRepeat": {
+      const order: State["repeat"][] = ["off", "all", "one"];
+      const repeat = order[(order.indexOf(s.repeat) + 1) % order.length];
+      try { localStorage.setItem("treble.repeat", repeat); } catch { /* ignore */ }
+      return { ...s, repeat };
+    }
+    case "setLiked":
+      return { ...s, likedIds: a.ids };
+    case "toggleLikedLocal":
+      return { ...s, likedIds: a.liked ? [...new Set([...s.likedIds, a.id])] : s.likedIds.filter((x) => x !== a.id) };
+    case "seedSearch":
+      return { ...s, screen: "search", pendingSearch: a.query, back: [...s.back, { screen: s.screen, detailId: s.detailId }], forward: [] };
+    case "clearSearchSeed":
+      return { ...s, pendingSearch: null };
     case "setLoading":
       return { ...s, loading: a.loading };
     case "setAutoDownload":
@@ -177,6 +289,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, [state.themePref, state.accent]);
+
+  // Load the set of liked track ids once so hearts reflect saved state everywhere.
+  useEffect(() => {
+    fetchLikedIds().then((ids) => dispatch({ type: "setLiked", ids })).catch(() => {});
+  }, []);
 
   const value = useMemo(() => ({ state, dispatch }), [state]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

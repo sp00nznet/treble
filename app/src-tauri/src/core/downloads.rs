@@ -46,8 +46,9 @@ pub fn download_native<F: FnMut(f32)>(url: &str, dir: &Path, id: &str, mut on_pr
 }
 
 /// Download a track's audio to `dir` as mp3. `on_progress` is called with 0.0–100.0.
+/// `quality` is the yt-dlp `--audio-quality` value (0 = best … 9 = worst).
 /// Returns the path to the finished file.
-pub fn download<F: FnMut(f32)>(id: &str, dir: &Path, mut on_progress: F) -> Result<PathBuf> {
+pub fn download<F: FnMut(f32)>(id: &str, dir: &Path, quality: &str, mut on_progress: F) -> Result<PathBuf> {
     std::fs::create_dir_all(dir)?;
     let out_template = dir.join("%(id)s.%(ext)s");
     let target = dir.join(format!("{id}.mp3"));
@@ -58,7 +59,7 @@ pub fn download<F: FnMut(f32)>(id: &str, dir: &Path, mut on_progress: F) -> Resu
             "--audio-format",
             "mp3",
             "--audio-quality",
-            "0",
+            quality,
             "-o",
         ])
         .arg(&out_template)

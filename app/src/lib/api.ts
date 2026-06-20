@@ -115,6 +115,14 @@ export async function resolveStream(id: string): Promise<string> {
   }
   // Podcast episodes (and any direct-URL track) are already playable URLs.
   if (/^https?:\/\//.test(id)) return id;
+  // Prefer an already-downloaded local copy — no need to stream it again.
+  if (isTauri()) {
+    const local = await invoke<string | null>("downloaded_path", { id }).catch(() => null);
+    if (local) {
+      const { convertFileSrc } = await import("@tauri-apps/api/core");
+      return convertFileSrc(local);
+    }
+  }
   return invoke<string>("resolve_stream", { id });
 }
 
@@ -325,6 +333,61 @@ export async function listDownloads(): Promise<Track[]> {
 export async function downloadTrack(track: Track): Promise<void> {
   if (!isTauri()) return;
   return invoke<void>("download_track", { track });
+}
+
+/** Download many tracks sequentially (a whole playlist). Progress per track id. */
+export async function downloadMany(tracks: Track[]): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("download_many", { tracks });
+}
+
+// ---- liked songs ----
+
+export async function likeTrack(track: Track): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("like_track", { track });
+}
+export async function unlikeTrack(id: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("unlike_track", { id });
+}
+export async function listLiked(): Promise<Track[]> {
+  if (!isTauri()) return [];
+  return invoke<Track[]>("list_liked");
+}
+export async function likedIds(): Promise<string[]> {
+  if (!isTauri()) return [];
+  return invoke<string[]>("liked_ids");
+}
+
+/** Append a track to an existing playlist. */
+export async function addToPlaylist(playlistId: string, track: Track): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("add_to_playlist", { playlistId, track });
+}
+
+// ---- settings + storage ----
+
+export async function getSetting(key: string): Promise<string | null> {
+  if (!isTauri()) { try { return localStorage.getItem(`treble.s.${key}`); } catch { return null; } }
+  return invoke<string | null>("get_setting", { key });
+}
+export async function setSetting(key: string, value: string): Promise<void> {
+  if (!isTauri()) { try { localStorage.setItem(`treble.s.${key}`, value); } catch { /* ignore */ } return; }
+  return invoke<void>("set_setting", { key, value });
+}
+export async function getDownloadDir(): Promise<string> {
+  if (!isTauri()) return "(browser preview — no downloads)";
+  return invoke<string>("get_download_dir");
+}
+export interface StorageStats { bytes: number; count: number; }
+export async function storageStats(): Promise<StorageStats> {
+  if (!isTauri()) return { bytes: 0, count: 0 };
+  return invoke<StorageStats>("storage_stats");
+}
+export async function clearDownloads(): Promise<number> {
+  if (!isTauri()) return 0;
+  return invoke<number>("clear_downloads");
 }
 
 // ---- browser-only fallback parser (mirrors core::spotify_import, loosely) ----

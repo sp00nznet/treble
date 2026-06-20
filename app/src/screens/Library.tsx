@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Import, FolderPlus, Loader2, Search as SearchIcon, Mic } from "lucide-react";
+import { Plus, Import, FolderPlus, Loader2, Search as SearchIcon, Mic, Heart } from "lucide-react";
 import { useStore } from "../store";
 import { LIBRARY } from "../data/mock";
 import { listPlaylists, pickFolder, scanLocalFolder, searchPodcasts, listSubscriptions, unsubscribePodcast, listAllTracks, newPlaylist, type Podcast } from "../lib/api";
@@ -97,14 +97,21 @@ export function Library() {
         <PodcastSearch />
       ) : tab === "Songs" && isTauri() ? (
         <SongsTab />
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && tab !== "Playlists" ? (
         <div style={{ padding: "26px 2px", color: "var(--text-2)", fontSize: 14, lineHeight: 1.6, maxWidth: 460 }}>
-          {tab === "Playlists"
-            ? "No playlists yet. Import one from Spotify or add a music folder above."
-            : `No ${tab.toLowerCase()} yet — they'll appear here as you save and download music.`}
+          {`No ${tab.toLowerCase()} yet — they'll appear here as you save and download music.`}
         </div>
       ) : (
         <div className="grid-5">
+          {tab === "Playlists" && (
+            <div className="card" style={{ border: "none", background: "transparent", padding: 0 }} onClick={() => dispatch({ type: "openDetail", id: "__liked__" })}>
+              <div className="art" style={{ background: "linear-gradient(135deg,#ff6b5c,#ffb38a)", marginBottom: 11, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Heart size={40} fill="#fff" style={{ color: "#fff" }} />
+              </div>
+              <div className="ellipsis" style={{ fontSize: 14, fontWeight: 700 }}>Liked Songs</div>
+              <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 2 }}>{state.likedIds.length} song{state.likedIds.length === 1 ? "" : "s"}</div>
+            </div>
+          )}
           {items.map((m) => (
             <div key={m.id} className="card" style={{ border: "none", background: "transparent", padding: 0 }} onClick={() => dispatch({ type: "openDetail", id: m.id })}>
               <div className="art" style={{ background: artBg(m.art), borderRadius: m.shape === "circle" ? "50%" : "var(--r-art)", marginBottom: 11 }} />
@@ -137,7 +144,7 @@ function SongsTab() {
         items={tracks}
         rowHeight={56}
         renderRow={(t) => (
-          <div className="trk" style={{ gridTemplateColumns: "1fr 1fr 60px", height: "100%" }} onClick={() => dispatch({ type: "play", track: t })} onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}>
+          <div className="trk" style={{ gridTemplateColumns: "1fr 1fr 60px", height: "100%" }} onClick={() => dispatch({ type: "play", track: t, queue: tracks })} onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}>
             <span style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
               <span className="trk-art" style={{ background: artBg(t.art) }} />
               <span style={{ minWidth: 0 }}>

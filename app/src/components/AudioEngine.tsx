@@ -20,6 +20,14 @@ export function AudioEngine() {
   const loadedId = useRef<string | null>(null);
   const playingRef = useRef(state.playing);
   playingRef.current = state.playing;
+  // Mirrored to refs so the (one-time) audio-element event handlers read fresh values.
+  const repeatRef = useRef(state.repeat);
+  repeatRef.current = state.repeat;
+  // Consecutive resolve/playback failures — used to auto-skip dead tracks without
+  // looping forever (give up once we've skipped roughly a whole queue).
+  const failRef = useRef(0);
+  const queueLenRef = useRef(1);
+  queueLenRef.current = Math.max(1, state.queue.length);
   // Latest position, mirrored to a ref so the browser-sim ticker reads fresh values
   // (and so seeks mid-simulation are respected).
   const posRef = useRef(state.positionSecs);
@@ -32,9 +40,22 @@ export function AudioEngine() {
     audioRef.current = el;
     const onTime = () => dispatch({ type: "setProgress", position: el.currentTime, duration: el.duration || 0 });
     const onMeta = () => dispatch({ type: "setProgress", position: el.currentTime, duration: el.duration || 0 });
-    const onEnded = () => dispatch({ type: "togglePlay" });
-    const onError = () => { dispatch({ type: "setLoading", loading: false }); uiLog(`audio error: ${el.error?.code ?? "?"} for ${el.currentSrc?.slice(0, 60)}`); };
-    const onPlaying = () => { dispatch({ type: "setLoading", loading: false }); uiLog("audio playing"); };
+    // Track ended → advance the queue (repeat-one replays the same track).
+    const onEnded = () => {
+      if (repeatRef.current === "one") { el.currentTime = 0; el.play().catch(() => {}); return; }
+      dispatch({ type: "next", auto: true });
+    };
+    const onError = () => {
+      dispatch({ type: "setLoading", loading: false });
+      uiLog(`audio error: ${el.error?.code ?? "?"} for ${el.currentSrc?.slice(0, 60)}`);
+      // A dead source: skip to the next track so playback doesn't just stall, but
+      // give up once we've skipped about a whole queue (avoid an endless loop).
+      if (playingRef.current && failRef.current < queueLenRef.current) {
+        failRef.current += 1;
+        dispatch({ type: "next", auto: true });
+      }
+    };
+    const onPlaying = () => { failRef.current = 0; dispatch({ type: "setLoading", loading: false }); uiLog("audio playing"); };
     const onCanPlay = () => dispatch({ type: "setLoading", loading: false });
     el.addEventListener("timeupdate", onTime);
     el.addEventListener("loadedmetadata", onMeta);
@@ -75,6 +96,11 @@ export function AudioEngine() {
       } catch (e) {
         dispatch({ type: "setLoading", loading: false });
         uiLog(`resolveStream failed: ${e}`);
+        // Couldn't resolve a stream — skip this track (bounded, see onError).
+        if (playingRef.current && failRef.current < queueLenRef.current) {
+          failRef.current += 1;
+          dispatch({ type: "next", auto: true });
+        }
       }
     })();
     return () => {
@@ -121,7 +147,7 @@ export function AudioEngine() {
       const next = posRef.current + 1;
       if (next >= dur) {
         dispatch({ type: "setProgress", position: dur, duration: dur });
-        if (playingRef.current) dispatch({ type: "togglePlay" });
+        if (playingRef.current) dispatch({ type: "next", auto: true });
       } else {
         dispatch({ type: "setProgress", position: next, duration: dur });
       }

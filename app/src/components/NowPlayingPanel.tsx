@@ -1,10 +1,12 @@
-import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Play, Pause, Maximize2, ExternalLink, ListMusic, Volume2, Loader2 } from "lucide-react";
+import { Heart, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Play, Pause, Maximize2, ExternalLink, ListMusic, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { useStore } from "../store";
 import { toggleFloating } from "../lib/windows";
 import { Scrubber } from "./Scrubber";
 import { SleepTimer } from "./SleepTimer";
+import { VolumeSlider } from "./VolumeSlider";
 import { fmtTime } from "../lib/format";
 import { useSyncedLyrics } from "../lib/useSyncedLyrics";
+import { useLike } from "../lib/useLike";
 import { isArtUrl } from "../types";
 
 /**
@@ -19,6 +21,10 @@ export function NowPlayingPanel() {
   const sub = np ? [np.artist, np.album].filter(Boolean).join(" · ") : "Pick a song to start";
   const { lines, activeIndex } = useSyncedLyrics();
   const teaser = np ? lines.slice(Math.max(0, activeIndex), activeIndex + 3) : [];
+  const { isLiked, toggle } = useLike();
+  const liked = np ? isLiked(np.id) : false;
+  // Skip-back restarts the current track if we're >3s in, else goes to the previous.
+  const skipBack = () => { if (state.positionSecs > 3) dispatch({ type: "seek", secs: 0 }); else dispatch({ type: "prev" }); };
 
   return (
     <aside className="player">
@@ -48,7 +54,13 @@ export function NowPlayingPanel() {
           <div className="ellipsis" style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 19 }}>{title}</div>
           <div className="ellipsis" style={{ fontSize: 14, color: "var(--text-2)" }}>{sub}</div>
         </div>
-        <Heart size={18} className="press" style={{ color: "var(--accent)" }} fill="currentColor" />
+        <Heart
+          size={18}
+          className="press"
+          style={{ color: liked ? "var(--accent)" : "var(--text-3)", cursor: np ? "pointer" : "default" }}
+          fill={liked ? "currentColor" : "none"}
+          onClick={() => np && toggle(np)}
+        />
       </div>
 
       <div style={{ margin: "18px 0 6px" }}>
@@ -59,28 +71,23 @@ export function NowPlayingPanel() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 16, color: "var(--text-2)" }}>
-        <Shuffle size={18} className="press" />
-        <SkipBack size={20} className="press" fill="currentColor" />
+        <Shuffle size={18} className="press" style={{ color: state.shuffle ? "var(--accent)" : "inherit", cursor: "pointer" }} onClick={() => dispatch({ type: "toggleShuffle" })} />
+        <SkipBack size={20} className="press" style={{ cursor: "pointer" }} fill="currentColor" onClick={skipBack} />
         <button className="fab press" style={{ width: 50, height: 50, boxShadow: "0 8px 20px rgba(255,107,92,.4)" }} onClick={() => dispatch({ type: "togglePlay" })}>
           {state.playing ? <Pause size={20} fill="#fff" /> : <Play size={20} fill="#fff" />}
         </button>
-        <SkipForward size={20} className="press" fill="currentColor" />
-        <Repeat size={18} className="press" />
+        <SkipForward size={20} className="press" style={{ cursor: "pointer" }} fill="currentColor" onClick={() => dispatch({ type: "next" })} />
+        {state.repeat === "one"
+          ? <Repeat1 size={18} className="press" style={{ color: "var(--accent)", cursor: "pointer" }} onClick={() => dispatch({ type: "cycleRepeat" })} />
+          : <Repeat size={18} className="press" style={{ color: state.repeat === "all" ? "var(--accent)" : "inherit", cursor: "pointer" }} onClick={() => dispatch({ type: "cycleRepeat" })} />}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, color: "var(--text-3)" }}>
-        <Volume2 size={19} className="press" />
-        <div
-          onClick={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            dispatch({ type: "setVolume", volume: (e.clientX - r.left) / r.width });
-          }}
-          style={{ flex: 1, margin: "0 10px", height: 4, borderRadius: 2, background: "var(--surface-2)", position: "relative", cursor: "pointer" }}
-          title="Volume"
-        >
-          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${state.volume * 100}%`, background: "var(--text-3)", borderRadius: 2 }} />
-        </div>
-        <ListMusic size={19} className="press" onClick={() => dispatch({ type: "go", screen: "queue" })} />
+        <span className="press" style={{ display: "flex", cursor: "pointer" }} onClick={() => dispatch({ type: "setVolume", volume: state.volume > 0 ? 0 : 1 })} title={state.volume > 0 ? "Mute" : "Unmute"}>
+          {state.volume > 0 ? <Volume2 size={19} /> : <VolumeX size={19} />}
+        </span>
+        <VolumeSlider />
+        <ListMusic size={19} className="press" style={{ cursor: "pointer" }} onClick={() => dispatch({ type: "go", screen: "queue" })} />
       </div>
 
       <div style={{ flex: 1 }} />

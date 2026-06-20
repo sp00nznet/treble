@@ -5,7 +5,8 @@ import {
 } from "lucide-react";
 import { useStore } from "../store";
 import { usePlaylists } from "../lib/usePlaylists";
-import { downloadTrack, listPeers, sendTo, type Peer } from "../lib/api";
+import { useLike } from "../lib/useLike";
+import { downloadTrack, listPeers, sendTo, addToPlaylist, newPlaylist, search, type Peer } from "../lib/api";
 
 /**
  * Right-click context menu for a track. Opens at the cursor (state.menu).
@@ -16,6 +17,7 @@ export function ContextMenu() {
   const [view, setView] = useState<"main" | "playlists" | "send">("main");
   const [peers, setPeers] = useState<Peer[]>([]);
   const playlists = usePlaylists();
+  const { isLiked, toggle } = useLike();
   const menu = state.menu;
 
   // Load LAN peers when the user opens the "Send to" sub-view.
@@ -24,8 +26,24 @@ export function ContextMenu() {
   }, [view]);
 
   if (!menu) return null;
+  const track = menu.track;
+  const liked = isLiked(track.id);
 
   const close = () => { setView("main"); dispatch({ type: "closeMenu" }); };
+  const addTo = async (playlistId: string) => { await addToPlaylist(playlistId, track); dispatch({ type: "refreshLibrary" }); close(); };
+  const newAndAdd = async () => { const pl = await newPlaylist("New Playlist"); await addToPlaylist(pl.id, track); dispatch({ type: "refreshLibrary" }); close(); };
+  // "Start radio" — search the artist and play the results as a queue.
+  const startRadio = async () => {
+    close();
+    const seed = track.artist || track.title;
+    const results = await search(seed).catch(() => []);
+    if (results.length) dispatch({ type: "play", track: results[0], queue: results });
+    else dispatch({ type: "play", track });
+  };
+  const share = async () => {
+    try { await navigator.clipboard.writeText(`${track.title} — ${track.artist}`); } catch { /* ignore */ }
+    close();
+  };
   const x = Math.min(menu.x, window.innerWidth - 244);
   const y = Math.min(menu.y, window.innerHeight - 410);
 
@@ -46,23 +64,23 @@ export function ContextMenu() {
         {view === "main" ? (
           <>
             <Group>
-              <Item icon={<Play size={17} />} label="Play" onClick={() => { dispatch({ type: "play", track: menu.track }); close(); }} />
-              <Item icon={<ListPlus size={17} />} label="Play next" onClick={close} />
-              <Item icon={<ListMusic size={17} />} label="Add to queue" onClick={close} />
+              <Item icon={<Play size={17} />} label="Play" onClick={() => { dispatch({ type: "play", track }); close(); }} />
+              <Item icon={<ListPlus size={17} />} label="Play next" onClick={() => { dispatch({ type: "playNext", track }); close(); }} />
+              <Item icon={<ListMusic size={17} />} label="Add to queue" onClick={() => { dispatch({ type: "enqueue", track }); close(); }} />
             </Group>
             <Group divider>
               <Item icon={<Plus size={17} />} label="Add to playlist" chevron onClick={() => setView("playlists")} />
-              <Item icon={<Heart size={17} />} label="Save to Liked Songs" onClick={close} />
-              <Item icon={<Radio size={17} />} label="Start radio · songs like this" onClick={close} />
+              <Item icon={<Heart size={17} fill={liked ? "currentColor" : "none"} />} label={liked ? "Remove from Liked Songs" : "Save to Liked Songs"} onClick={() => { toggle(track); close(); }} />
+              <Item icon={<Radio size={17} />} label="Start radio · songs like this" onClick={() => void startRadio()} />
             </Group>
             <Group divider>
-              <Item icon={<Disc3 size={17} />} label="Go to album" onClick={() => { dispatch({ type: "openDetail", id: "lnd" }); close(); }} />
-              <Item icon={<User size={17} />} label="Go to artist" onClick={close} />
+              <Item icon={<Disc3 size={17} />} label="Go to album" onClick={() => { dispatch({ type: "seedSearch", query: track.album || track.title }); close(); }} />
+              <Item icon={<User size={17} />} label="Go to artist" onClick={() => { dispatch({ type: "seedSearch", query: track.artist || track.title }); close(); }} />
             </Group>
             <Group divider>
               <Item icon={<MonitorSpeaker size={17} />} label="Send to device" chevron onClick={() => setView("send")} />
-              <Item icon={<Download size={17} />} label="Download" onClick={() => { void downloadTrack(menu.track); dispatch({ type: "go", screen: "downloads" }); close(); }} />
-              <Item icon={<Share2 size={17} />} label="Share" onClick={close} />
+              <Item icon={<Download size={17} />} label="Download" onClick={() => { void downloadTrack(track); dispatch({ type: "go", screen: "downloads" }); close(); }} />
+              <Item icon={<Share2 size={17} />} label="Copy song name" onClick={() => void share()} />
             </Group>
           </>
         ) : view === "send" ? (
@@ -93,12 +111,12 @@ export function ContextMenu() {
               <Item icon={<ChevronLeft size={17} />} label="Back to menu" onClick={() => setView("main")} />
             </Group>
             <Group divider>
-              <Item icon={<Plus size={17} />} label="New playlist" onClick={close} />
+              <Item icon={<Plus size={17} />} label="New playlist" onClick={() => void newAndAdd()} />
               {playlists.length === 0 ? (
                 <div style={{ padding: "8px 12px", fontSize: 12.5, color: "var(--text-3)" }}>No playlists yet.</div>
               ) : (
                 playlists.map((p) => (
-                  <Item key={p.id} icon={<ListMusic size={17} />} label={p.title} onClick={close} />
+                  <Item key={p.id} icon={<ListMusic size={17} />} label={p.title} onClick={() => void addTo(p.id)} />
                 ))
               )}
             </Group>

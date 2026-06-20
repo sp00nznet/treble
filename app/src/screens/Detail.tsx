@@ -2,11 +2,32 @@ import { useEffect, useMemo, useState } from "react";
 import { Play, Heart, Download, MoreHorizontal, Clock, Pencil, Trash2, Check, X, Star, ChevronUp, ChevronDown, Image as ImageIcon } from "lucide-react";
 import { useStore } from "../store";
 import { PLAYLISTS, TRACKS, ART } from "../data/mock";
-import { getPlaylist, deletePlaylist, renamePlaylist, downloadTrack, setRating, pickImage, setPlaylistCover, type CorePlaylist } from "../lib/api";
+import { getPlaylist, deletePlaylist, renamePlaylist, downloadMany, setRating, pickImage, setPlaylistCover, listLiked, type CorePlaylist } from "../lib/api";
 import type { Track } from "../types";
 import { isTauri } from "../lib/windows";
 import { artBg } from "../lib/art";
 import { VirtualList } from "../components/VirtualList";
+
+/** Sentinel detailId for the auto-managed Liked Songs view. */
+export const LIKED_ID = "__liked__";
+
+function loadSort(): { key: SortKey; dir: "asc" | "desc" } {
+  try {
+    const s = localStorage.getItem("treble.detailSort");
+    if (s) return JSON.parse(s);
+  } catch { /* ignore */ }
+  return { key: "index", dir: "asc" };
+}
+function isFav(id: string): boolean {
+  try { return JSON.parse(localStorage.getItem("treble.favPlaylists") || "[]").includes(id); } catch { return false; }
+}
+function toggleFav(id: string): boolean {
+  let list: string[] = [];
+  try { list = JSON.parse(localStorage.getItem("treble.favPlaylists") || "[]"); } catch { /* ignore */ }
+  const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+  try { localStorage.setItem("treble.favPlaylists", JSON.stringify(next)); } catch { /* ignore */ }
+  return next.includes(id);
+}
 
 type ColKey = "artist" | "album" | "rating";
 type SortKey = "index" | "title" | "artist" | "album" | "rating" | "duration";
@@ -28,32 +49,39 @@ function loadCols(): ColKey[] {
 export function Detail() {
   const { state, dispatch } = useStore();
   const demo = !isTauri();
-  const mock = demo ? PLAYLISTS.find((p) => p.id === state.detailId) ?? PLAYLISTS[1] : null;
+  const isLikedView = state.detailId === LIKED_ID;
+  const mock = demo && !isLikedView ? PLAYLISTS.find((p) => p.id === state.detailId) ?? PLAYLISTS[1] : null;
   const [real, setReal] = useState<CorePlaylist | null>(null);
 
   useEffect(() => {
     let live = true;
     setReal(null);
-    if (state.detailId) {
+    if (isLikedView) {
+      // Liked Songs is a virtual playlist backed by the `liked` table.
+      listLiked().then((tracks) => { if (live) setReal({ id: LIKED_ID, title: "Liked Songs", subtitle: "", art: "linear-gradient(135deg,#ff6b5c,#ffb38a)", tracks }); });
+    } else if (state.detailId) {
       getPlaylist(state.detailId).then((p) => {
         if (live && p && p.tracks.length > 0) setReal(p);
       });
     }
     return () => { live = false; };
-  }, [state.detailId, state.libRefresh]);
+  }, [state.detailId, state.libRefresh, isLikedView, state.likedIds.length]);
 
   const title = real?.title ?? mock?.title ?? "Playlist";
   const art = real?.art || mock?.art || (demo ? ART[3] : "");
   const baseTracks: Track[] = real?.tracks ?? (demo ? TRACKS : []);
   const subtitle = `${baseTracks.length} song${baseTracks.length === 1 ? "" : "s"}`;
-  const isReal = !!real;
+  const isReal = !!real && !isLikedView; // Liked Songs isn't renamable/deletable
+  const [fav, setFav] = useState(false);
+  useEffect(() => { setFav(state.detailId ? isFav(state.detailId) : false); }, [state.detailId]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
   const [cols, setCols] = useState<ColKey[]>(loadCols);
   const [colMenu, setColMenu] = useState<{ x: number; y: number } | null>(null);
-  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "index", dir: "asc" });
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>(loadSort);
+  useEffect(() => { try { localStorage.setItem("treble.detailSort", JSON.stringify(sort)); } catch { /* ignore */ } }, [sort]);
 
   const toggleCol = (k: ColKey) => {
     setCols((c) => {
@@ -87,8 +115,8 @@ export function Detail() {
   const visible = OPTIONAL.filter((o) => cols.includes(o.key)).map((o) => o.key);
   const grid = ["30px", "minmax(0,2fr)", ...visible.map((k) => COL_W[k]), "60px"].join(" ");
 
-  const playAll = () => baseTracks[0] && dispatch({ type: "play", track: baseTracks[0] });
-  const downloadAll = () => { baseTracks.forEach((t) => void downloadTrack(t)); if (baseTracks.length) dispatch({ type: "go", screen: "downloads" }); };
+  const playAll = () => tracks[0] && dispatch({ type: "play", track: tracks[0], queue: tracks });
+  const downloadAll = () => { if (baseTracks.length) { void downloadMany(baseTracks); dispatch({ type: "go", screen: "downloads" }); } };
   const doDelete = async () => { if (!real) return; await deletePlaylist(real.id); dispatch({ type: "refreshLibrary" }); dispatch({ type: "go", screen: "library" }); };
   const doRename = async () => {
     if (!real || !newName.trim()) { setRenaming(false); return; }
@@ -123,18 +151,26 @@ export function Detail() {
     </span>
   );
 
-  const rowRender = (t: Track, i: number) => (
+  const rowRender = (t: Track, i: number) => {
+    const isNow = state.nowPlaying?.id === t.id;
+    return (
     <div
       className="trk"
       style={{ gridTemplateColumns: grid, height: "100%", margin: "0 34px" }}
-      onClick={() => dispatch({ type: "play", track: t })}
+      onClick={() => dispatch({ type: "play", track: t, queue: tracks })}
       onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}
     >
-      <span className="idx">{i + 1}</span>
+      <span className="idx">
+        {isNow && state.playing ? (
+          <span style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 14, justifyContent: "center" }}>
+            {[0, 1, 2].map((b) => <span key={b} className="eqbar" style={{ animationDelay: `${b * 0.18}s` }} />)}
+          </span>
+        ) : isNow ? <Play size={13} fill="currentColor" style={{ color: "var(--accent)" }} /> : i + 1}
+      </span>
       <span style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
         <span className="trk-art" style={{ background: artBg(t.art) }} />
         <span style={{ minWidth: 0 }}>
-          <span className="ellipsis" style={{ display: "block", fontSize: 14, fontWeight: 600 }}>{t.title}</span>
+          <span className="ellipsis" style={{ display: "block", fontSize: 14, fontWeight: 600, color: isNow ? "var(--accent)" : undefined }}>{t.title}</span>
           <span className="ellipsis" style={{ display: "block", fontSize: 12, color: "var(--text-2)" }}>{t.artist}</span>
         </span>
       </span>
@@ -149,7 +185,8 @@ export function Detail() {
       )}
       <span style={{ fontSize: 13, color: "var(--text-3)", textAlign: "right" }}>{t.duration}</span>
     </div>
-  );
+    );
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -184,7 +221,15 @@ export function Detail() {
 
       <div style={{ flexShrink: 0, padding: "18px 34px 8px", display: "flex", alignItems: "center", gap: 18 }}>
         <button className="fab press" style={{ width: 56, height: 56, boxShadow: "0 10px 24px rgba(255,107,92,.4)" }} onClick={playAll}><Play size={24} fill="#fff" /></button>
-        <Heart size={26} className="press" style={{ color: "var(--accent)", cursor: "pointer" }} fill="currentColor" />
+        {!isLikedView && (
+          <Heart
+            size={26}
+            className="press"
+            style={{ color: fav ? "var(--accent)" : "var(--text-3)", cursor: "pointer" }}
+            fill={fav ? "currentColor" : "none"}
+            onClick={() => { if (state.detailId) setFav(toggleFav(state.detailId)); }}
+          />
+        )}
         <Download size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={downloadAll} />
         <div style={{ position: "relative" }}>
           <MoreHorizontal size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={() => setMenuOpen((o) => !o)} />

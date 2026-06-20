@@ -68,6 +68,10 @@ impl Library {
                 feed_url TEXT NOT NULL,
                 added    INTEGER NOT NULL DEFAULT 0
             );
+            CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
             "#,
         )?;
         Ok(())
@@ -167,6 +171,25 @@ impl Library {
         Ok(id)
     }
 
+    /// Append a single track to an existing playlist (no-op if already present).
+    pub fn add_to_playlist(&self, playlist_id: &str, t: &Track) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        Self::upsert_track(&conn, t)?;
+        let pos: i64 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(position) + 1, 0) FROM playlist_tracks WHERE playlist_id = ?1",
+                params![playlist_id],
+                |r| r.get(0),
+            )
+            .unwrap_or(0);
+        conn.execute(
+            "INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, position)
+             VALUES (?1, ?2, ?3)",
+            params![playlist_id, t.id, pos],
+        )?;
+        Ok(())
+    }
+
     /// Delete a playlist and its track links.
     pub fn delete_playlist(&self, id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
@@ -180,6 +203,13 @@ impl Library {
         let conn = self.conn.lock().unwrap();
         conn.execute("UPDATE playlists SET title = ?1 WHERE id = ?2", params![title, id])?;
         Ok(())
+    }
+
+    /// Ensure a track row exists (so it can be flagged downloaded / liked even if
+    /// it isn't in any playlist).
+    pub fn ensure_track(&self, t: &Track) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        Self::upsert_track(&conn, t)
     }
 
     /// Mark a track downloaded (and where its file lives).
@@ -283,6 +313,113 @@ impl Library {
     pub fn set_playlist_art(&self, id: &str, art: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute("UPDATE playlists SET art = ?1 WHERE id = ?2", params![art, id])?;
+        Ok(())
+    }
+
+    // ---- liked songs ----
+
+    /// Add a track to Liked Songs (upserting the track row so it survives even if
+    /// it isn't in any playlist).
+    pub fn like(&self, t: &Track) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        Self::upsert_track(&conn, t)?;
+        conn.execute(
+            "INSERT OR IGNORE INTO liked (track_id, added) VALUES (?1, strftime('%s','now'))",
+            params![t.id],
+        )?;
+        Ok(())
+    }
+
+    pub fn unlike(&self, track_id: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM liked WHERE track_id = ?1", params![track_id])?;
+        Ok(())
+    }
+
+    /// Just the ids of liked tracks (the frontend keeps this set for quick lookup).
+    pub fn liked_ids(&self) -> Result<Vec<String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT track_id FROM liked")?;
+        let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    /// Liked Songs as a track list (most-recently-liked first).
+    pub fn list_liked(&self) -> Result<Vec<Track>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT t.id, t.title, t.artist, t.album, t.duration_secs, t.art, t.downloaded,
+                    COALESCE(rt.rating, 0)
+             FROM liked l JOIN tracks t ON t.id = l.track_id
+             LEFT JOIN ratings rt ON rt.track_id = t.id
+             ORDER BY l.added DESC",
+        )?;
+        let rows = stmt.query_map([], |r| {
+            let secs: u32 = r.get(4)?;
+            Ok(Track {
+                id: r.get(0)?,
+                title: r.get(1)?,
+                artist: r.get(2)?,
+                album: r.get(3)?,
+                duration: Track::fmt_duration(secs),
+                duration_secs: secs,
+                art: r.get(5)?,
+                downloaded: r.get::<_, i64>(6)? != 0,
+                rating: r.get::<_, i64>(7)? as u8,
+            })
+        })?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    // ---- downloads ----
+
+    /// The on-disk path of a downloaded track, if it's downloaded (so playback can
+    /// prefer the local file over streaming). Caller checks the file still exists.
+    pub fn downloaded_path(&self, id: &str) -> Result<Option<String>> {
+        let conn = self.conn.lock().unwrap();
+        let p = conn
+            .query_row(
+                "SELECT file_path FROM tracks WHERE id = ?1 AND downloaded = 1",
+                params![id],
+                |r| r.get::<_, Option<String>>(0),
+            )
+            .ok()
+            .flatten();
+        Ok(p)
+    }
+
+    /// File paths of every downloaded track (for clear-cache / storage stats).
+    pub fn downloaded_paths(&self) -> Result<Vec<String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT file_path FROM tracks WHERE downloaded = 1 AND file_path IS NOT NULL")?;
+        let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    /// Clear the downloaded flag/path for every track (after deleting the files).
+    pub fn clear_downloaded(&self) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("UPDATE tracks SET downloaded = 0, file_path = NULL WHERE downloaded = 1", [])?;
+        Ok(())
+    }
+
+    // ---- settings (key/value) ----
+
+    pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
+        let conn = self.conn.lock().unwrap();
+        let v = conn
+            .query_row("SELECT value FROM settings WHERE key = ?1", params![key], |r| r.get::<_, String>(0))
+            .ok();
+        Ok(v)
+    }
+
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES (?1, ?2)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            params![key, value],
+        )?;
         Ok(())
     }
 }

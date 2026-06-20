@@ -10,9 +10,18 @@ import { isTauri } from "../lib/windows";
 type Mode = "songs" | "podcasts";
 
 export function Search() {
-  const { dispatch } = useStore();
+  const { state, dispatch } = useStore();
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("songs");
+
+  // Seeded from "Go to artist / album" — prefill the query then clear the seed.
+  useEffect(() => {
+    if (state.pendingSearch != null) {
+      setMode("songs");
+      setQuery(state.pendingSearch);
+      dispatch({ type: "clearSearchSeed" });
+    }
+  }, [state.pendingSearch, dispatch]);
   const [results, setResults] = useState<Track[]>([]);
   const [shows, setShows] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(false);
@@ -125,7 +134,7 @@ export function Search() {
               <h2 className="h2" style={{ fontSize: 20, marginBottom: 14 }}>{results.length > 0 ? "Songs" : loading ? "Searching…" : error ? "Something went wrong" : "No results"}</h2>
               <div>
                 {results.map((t) => (
-                  <div key={t.id} className="trk" style={{ gridTemplateColumns: "1fr 1fr 70px" }} onClick={() => dispatch({ type: "play", track: t })} onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}>
+                  <div key={t.id} className="trk" style={{ gridTemplateColumns: "1fr 1fr 70px" }} onClick={() => dispatch({ type: "play", track: t, queue: results })} onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                       <span style={{ width: 42, height: 42, borderRadius: 7, flex: "none", background: isArtUrl(t.art) ? `center/cover no-repeat url(${t.art})` : t.art }} />
                       <span style={{ minWidth: 0 }}>

@@ -41,6 +41,17 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [state.menu, state.npOpen, state.lyricsOpen, state.miniOpen, dispatch]);
 
+  // Mouse back/forward (buttons 3 & 4) navigate Treble's own history. `mouseup`
+  // only (adding auxclick too would double-fire on a single press).
+  useEffect(() => {
+    const onMouse = (e: MouseEvent) => {
+      if (e.button === 3) { e.preventDefault(); dispatch({ type: "navBack" }); }
+      else if (e.button === 4) { e.preventDefault(); dispatch({ type: "navForward" }); }
+    };
+    window.addEventListener("mouseup", onMouse);
+    return () => window.removeEventListener("mouseup", onMouse);
+  }, [dispatch]);
+
   // Suppress the webview's native context menu everywhere (the "Save as…" junk).
   // Track rows still open Treble's own menu via their React onContextMenu handlers.
   useEffect(() => {
