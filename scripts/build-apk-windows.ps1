@@ -32,6 +32,9 @@ $tauri = Join-Path $app 'src-tauri'
 $gen = Join-Path $tauri 'gen\android'
 $abiDir = Join-Path $gen 'app\src\main\jniLibs\arm64-v8a'
 
+Write-Host '==> Forcing a fresh core compile (avoids a stale 0-asset embed)...'
+cargo clean -p treble --target aarch64-linux-android --manifest-path "$tauri\Cargo.toml" 2>&1 | Out-Null
+
 Write-Host '==> Compiling the Rust core (the symlink step will fail on Windows; that is expected)...'
 Push-Location $app
 npm run android:build   # builds libtreble_lib.so, then errors at the symlink — ignored

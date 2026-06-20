@@ -94,6 +94,10 @@ npm run android          # tauri android dev
 
 ## Troubleshooting
 
+- **App window shows `asset not found: index.html`** — the frontend wasn't embedded (a stale
+  incremental build reused a cached core lib without re-running the asset embed). `npm run desktop:build`
+  now force-cleans the core first to prevent this; if you hit it another way, run
+  `npm run clean:core` then rebuild.
 - **`webkit2gtk` not found (Linux)** — install the Tauri Linux prerequisites; Ubuntu needs
   `libwebkit2gtk-4.1-dev` and friends.
 - **Rust build is slow the first time** — `rustypipe` + `reqwest` pull a large dependency tree; the

@@ -28,3 +28,7 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# build artifacts (do not commit large binaries)
+*.apk
+*.idsig
