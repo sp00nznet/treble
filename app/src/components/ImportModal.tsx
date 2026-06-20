@@ -23,7 +23,7 @@ const SKIP = -1;
 
 export function ImportModal() {
   const { state, dispatch } = useStore();
-  const [name, setName] = useState("Imported from Spotify");
+  const [name, setName] = useState("Imported Playlist");
   const [text, setText] = useState("");
   const [phase, setPhase] = useState<Phase>("input");
   const [progress, setProgress] = useState<ImportProgress | null>(null);
@@ -139,7 +139,7 @@ export function ImportModal() {
     <div className="modal-backdrop">
       <div className="modal" onClick={(e) => e.stopPropagation()} style={phase === "review" ? { maxWidth: 600 } : undefined}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-          <h2 className="h2" style={{ fontSize: 22 }}>Import from Spotify</h2>
+          <h2 className="h2" style={{ fontSize: 22 }}>Import a playlist</h2>
           <button className="icon-btn press" onClick={close} aria-label="Close"><X size={18} /></button>
         </div>
 
@@ -288,7 +288,7 @@ function ReviewRow({
             {pick ? `${pick.title}` : "Skipped"}
           </span>
           <span className="ellipsis" style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>
-            from Spotify: {source}
+            imported: {source}
           </span>
         </span>
         {flagged ? (

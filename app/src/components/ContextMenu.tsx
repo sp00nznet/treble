@@ -74,7 +74,9 @@ export function ContextMenu() {
               <Item icon={<Radio size={17} />} label="Start radio · songs like this" onClick={() => void startRadio()} />
             </Group>
             <Group divider>
-              <Item icon={<Disc3 size={17} />} label="Go to album" onClick={() => { dispatch({ type: "seedSearch", query: track.album || track.title }); close(); }} />
+              {track.album && (
+                <Item icon={<Disc3 size={17} />} label="Go to album" onClick={() => { dispatch({ type: "seedSearch", query: [track.artist, track.album].filter(Boolean).join(" ") }); close(); }} />
+              )}
               <Item icon={<User size={17} />} label="Go to artist" onClick={() => { dispatch({ type: "seedSearch", query: track.artist || track.title }); close(); }} />
             </Group>
             <Group divider>

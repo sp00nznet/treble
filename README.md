@@ -26,7 +26,7 @@ bar at the bottom, and a split-screen lyrics view that actually feels good to re
 Under that pretty face, Treble pulls its catalog from **YouTube Music** (via a fully native Rust
 [InnerTube](https://codeberg.org/ThetaDev/rustypipe) client — so it runs the *same engine* on your laptop
 **and** your phone), downloads tracks for real offline listening, fetches time-synced lyrics, and can
-**import a Spotify playlist straight from your clipboard**.
+**import a playlist you already have — straight from your clipboard**.
 
 > **We did not build the hard parts.** Treble is a nice coat of paint on a *mountain* of work by other
 > people — the folks who reverse-engineered YouTube's API, wrote the downloaders, built the lyrics
@@ -53,9 +53,9 @@ Under that pretty face, Treble pulls its catalog from **YouTube Music** (via a f
 ## ✨ Features
 
 - 🎧 **Real playback & full downloads** — stream from YouTube Music or save tracks for offline (`yt-dlp` + `ffmpeg` on desktop, native Rust [`rustypipe`](https://codeberg.org/ThetaDev/rustypipe) on mobile).
-- 📋 **Spotify playlist import** — copy a playlist in Spotify (`Ctrl+A → Ctrl+C` on the track list), hit **Import** in Treble, and we parse it, match every track on YouTube Music, and save it as a real, playable Treble playlist.
+- 📋 **Playlist import** — paste a playlist (a CSV export, track links, or plain *Title — Artist* lines), hit **Import** in Treble, and we parse it, match every track on YouTube Music, and save it as a real, playable Treble playlist.
 - 🎤 **Time-synced lyrics** — pulled from [LrcLib](https://lrclib.net), highlighting the active line as it plays; click any line to seek. Pop-out window or full-screen split view.
-- 📡 **"Send to…" any device on your Wi-Fi** — Spotify-Connect-style. Treble devices find each other over the LAN (mDNS); right-click a song → **Send to ▸** and it plays on the other device. No cloud, no account, nothing leaves your network.
+- 📡 **"Send to…" any device on your Wi-Fi** — cast-style handoff. Treble devices find each other over the LAN (mDNS); right-click a song → **Send to ▸** and it plays on the other device. No cloud, no account, nothing leaves your network.
 - 📁 **Local files too** — point Treble at a music folder and it indexes your own files (tags and all) right alongside streamed tracks.
 - 😴 **Sleep timer** — 15/30/45/60 minutes or end-of-track, with a live countdown.
 - 🌗 **Light + dark, 4 accents** — Amber, Coral, Rose, Gold. Instant theme swap, no reload.
@@ -90,7 +90,7 @@ treble/
 │   │   ├── lib/api.ts        ← the bridge: typed calls into the Rust core (mock fallback in browser)
 │   │   └── screens/          home · search · library · detail · downloads · settings · queue
 │   └── src-tauri/           the Rust core — runs identically on desktop + Android
-│       └── src/core/        catalog · downloads · lyrics · library · spotify_import · sync
+│       └── src/core/        catalog · downloads · lyrics · library · import · sync
 ├── design/                  the original design handoff (the source of truth for the look)
 ├── CREDITS.md               🙏 everyone whose work this stands on
 ├── ARCHITECTURE.md          how the pieces fit together

@@ -18,22 +18,20 @@ use serde_json::Value;
 /// Search the catalog. Dispatches to the active backend: native `rustypipe`
 /// (Android / `native-catalog` feature) or `yt-dlp` (desktop default).
 pub fn search(query: &str, limit: u32) -> Result<Vec<Track>> {
+    // YouTube's InnerTube now bot-blocks rustypipe search with a 403, so prefer
+    // yt-dlp (which bypasses it, the same way stream resolution does) whenever it's
+    // available. Fall back to the native client only if yt-dlp isn't present
+    // (e.g. on Android, where yt-dlp can't run).
+    if tools::ensure_ytdlp() {
+        match ytdlp_search(query, limit) {
+            Ok(v) if !v.is_empty() => return Ok(v),
+            Ok(_) => crate::tlog!("yt-dlp search: 0 results"),
+            Err(e) => crate::tlog!("yt-dlp search failed ({e}); trying native"),
+        }
+    }
     #[cfg(feature = "native-catalog")]
     {
-        // Prefer the native YouTube Music search, but it now frequently hits
-        // YouTube's InnerTube bot-detection 403. When it errors (or returns
-        // nothing), fall back to yt-dlp's search, which bypasses the 403 the same
-        // way stream resolution does.
-        match crate::core::catalog_native::search(query, limit) {
-            Ok(v) if !v.is_empty() => return Ok(v),
-            Ok(_) => crate::tlog!("native search: 0 results, trying yt-dlp"),
-            Err(e) => crate::tlog!("native search failed ({e}); trying yt-dlp"),
-        }
-        if tools::ensure_ytdlp() {
-            return ytdlp_search(query, limit);
-        }
-        // No yt-dlp available — re-run native so the real error surfaces.
-        return crate::core::catalog_native::search(query, limit);
+        crate::core::catalog_native::search(query, limit)
     }
     #[cfg(not(feature = "native-catalog"))]
     {

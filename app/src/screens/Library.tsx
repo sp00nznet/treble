@@ -69,7 +69,7 @@ export function Library() {
             style={{ display: "flex", alignItems: "center", gap: 7 }}
             onClick={() => dispatch({ type: "setImport", open: true })}
           >
-            <Import size={16} /> Import from Spotify
+            <Import size={16} /> Import
           </button>
           <button
             className="chip active press"

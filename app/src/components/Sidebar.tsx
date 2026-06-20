@@ -70,7 +70,7 @@ export function Sidebar() {
       <div style={{ flex: 1, overflowY: "auto", margin: "0 -4px", padding: "0 4px" }}>
         {playlists.length === 0 ? (
           <div style={{ padding: "8px 11px", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-            No playlists yet. Import from Spotify or add a music folder in your Library.
+            No playlists yet. Import a playlist or add a music folder in your Library.
           </div>
         ) : (
           playlists.map((p) => (

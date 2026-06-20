@@ -31,7 +31,7 @@ export function NowPlayingPanel() {
         <span className="eyebrow">Now playing</span>
         <div style={{ display: "flex", gap: 10, alignItems: "center", color: "var(--text-2)" }}>
           <SleepTimer />
-          <PictureInPicture2 size={17} className="press" style={{ cursor: "pointer" }} onClick={() => dispatch({ type: "setMini", open: true })} aria-label="Mini player" />
+          <PictureInPicture2 size={17} className="press" style={{ color: state.miniOpen ? "var(--accent)" : "inherit", cursor: "pointer" }} onClick={() => dispatch({ type: "setMini", open: !state.miniOpen })} aria-label="Mini player" />
           <Maximize2 size={17} className="press" style={{ cursor: "pointer" }} onClick={() => dispatch({ type: "setNp", open: true })} aria-label="Full screen" />
           <PanelRightClose size={17} className="press" style={{ cursor: "pointer" }} onClick={() => dispatch({ type: "setPlayerOpen", open: false })} aria-label="Hide panel" />
         </div>

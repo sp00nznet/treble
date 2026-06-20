@@ -51,7 +51,10 @@ export function Detail() {
       listLiked().then((tracks) => { if (live) setReal({ id: LIKED_ID, title: "Liked Songs", subtitle: "", art: "linear-gradient(135deg,#ff6b5c,#ffb38a)", tracks }); });
     } else if (state.detailId) {
       getPlaylist(state.detailId).then((p) => {
-        if (live && p && p.tracks.length > 0) setReal(p);
+        // Load the real playlist even when it's empty (new playlists have 0
+        // tracks) so it stays editable. In the browser demo we still need a
+        // non-empty playlist to fall back to the mock tracks.
+        if (live && p && (isTauri() || p.tracks.length > 0)) setReal(p);
       });
     }
     return () => { live = false; };
@@ -62,6 +65,7 @@ export function Detail() {
   const baseTracks: Track[] = real?.tracks ?? (demo ? TRACKS : []);
   const subtitle = `${baseTracks.length} song${baseTracks.length === 1 ? "" : "s"}`;
   const isReal = !!real && !isLikedView; // Liked Songs isn't renamable/deletable
+  const allDownloaded = baseTracks.length > 0 && baseTracks.every((t) => t.downloaded);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -190,7 +194,7 @@ export function Detail() {
             </span>
           )}
         </div>
-        <div style={{ paddingBottom: 6 }}>
+        <div style={{ paddingBottom: 6 }} onContextMenu={(e) => { if (isReal && !renaming) { e.preventDefault(); setMenuOpen(true); } }}>
           <div className="eyebrow" style={{ color: "var(--text-2)" }}>Playlist</div>
           {renaming ? (
             <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 14px" }}>
@@ -207,9 +211,14 @@ export function Detail() {
         </div>
       </header>
 
-      <div style={{ flexShrink: 0, padding: "18px 34px 8px", display: "flex", alignItems: "center", gap: 18 }}>
+      <div
+        style={{ flexShrink: 0, padding: "18px 34px 22px", display: "flex", alignItems: "center", gap: 18, position: "relative", zIndex: 1 }}
+        onContextMenu={(e) => { if (isReal) { e.preventDefault(); setMenuOpen(true); } }}
+      >
         <button className="fab press" style={{ width: 56, height: 56, boxShadow: "0 10px 24px rgba(255,107,92,.4)" }} onClick={playAll}><Play size={24} fill="#fff" /></button>
-        <Download size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={downloadAll} />
+        <span className="press" style={{ display: "flex", cursor: "pointer" }} onClick={downloadAll} title={allDownloaded ? "Downloaded for offline" : "Download all"}>
+          <Download size={24} style={{ color: allDownloaded ? "var(--accent)" : "var(--text-2)" }} />
+        </span>
         <div style={{ position: "relative" }}>
           <MoreHorizontal size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={() => setMenuOpen((o) => !o)} />
           {menuOpen && (
