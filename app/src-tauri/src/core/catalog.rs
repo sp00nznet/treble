@@ -20,6 +20,19 @@ use serde_json::Value;
 pub fn search(query: &str, limit: u32) -> Result<Vec<Track>> {
     #[cfg(feature = "native-catalog")]
     {
+        // Prefer the native YouTube Music search, but it now frequently hits
+        // YouTube's InnerTube bot-detection 403. When it errors (or returns
+        // nothing), fall back to yt-dlp's search, which bypasses the 403 the same
+        // way stream resolution does.
+        match crate::core::catalog_native::search(query, limit) {
+            Ok(v) if !v.is_empty() => return Ok(v),
+            Ok(_) => crate::tlog!("native search: 0 results, trying yt-dlp"),
+            Err(e) => crate::tlog!("native search failed ({e}); trying yt-dlp"),
+        }
+        if tools::ensure_ytdlp() {
+            return ytdlp_search(query, limit);
+        }
+        // No yt-dlp available — re-run native so the real error surfaces.
         return crate::core::catalog_native::search(query, limit);
     }
     #[cfg(not(feature = "native-catalog"))]
@@ -206,7 +219,11 @@ fn track_from_json(v: &Value) -> Option<Track> {
         .trim_end_matches(" - Topic")
         .to_string();
     let duration_secs = v.get("duration").and_then(Value::as_f64).unwrap_or(0.0) as u32;
-    let art = best_thumbnail(v);
+    // flat-playlist search results often omit thumbnails — derive one from the id.
+    let art = {
+        let t = best_thumbnail(v);
+        if t.is_empty() { format!("https://i.ytimg.com/vi/{id}/mqdefault.jpg") } else { t }
+    };
     Some(Track {
         id,
         title,

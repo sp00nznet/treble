@@ -60,7 +60,9 @@ function FloatingShell({ title, onClose, start, width, height, children }: {
 
 export function MiniPlayer() {
   const { state, dispatch } = useStore();
-  if (!state.miniOpen) return null;
+  // Hide the mini while the full-screen player is open (no overlap) — closing the
+  // full screen brings the mini back, so the maximize button round-trips.
+  if (!state.miniOpen || state.npOpen) return null;
   const np = state.nowPlaying;
   const skipBack = () => { if (state.positionSecs > 3) dispatch({ type: "seek", secs: 0 }); else dispatch({ type: "prev" }); };
 

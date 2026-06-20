@@ -1,6 +1,5 @@
-import { ChevronLeft, ChevronRight, Sun, Moon, PanelRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, PanelRight } from "lucide-react";
 import { useStore } from "../store";
-import { resolveTheme } from "../theme";
 import { Devices } from "./Devices";
 import { WindowControls } from "./WindowControls";
 
@@ -11,7 +10,6 @@ const noDrag = { onMouseDown: (e: React.MouseEvent) => e.stopPropagation() };
 
 export function Titlebar() {
   const { state, dispatch } = useStore();
-  const isDark = resolveTheme(state.themePref) === "dark";
 
   return (
     <div className="titlebar" data-tauri-drag-region>
@@ -25,15 +23,6 @@ export function Titlebar() {
       <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--text-3)", marginRight: 8 }} data-tauri-drag-region>Treble</span>
       <div style={{ flex: 1 }} data-tauri-drag-region />
 
-      <button
-        {...noDrag}
-        className="press"
-        onClick={() => dispatch({ type: "setThemePref", pref: isDark ? "light" : "dark" })}
-        style={{ ...iconBtn, width: 32, height: 32, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-2)" }}
-        title="Toggle theme"
-      >
-        {isDark ? <Sun size={17} /> : <Moon size={17} />}
-      </button>
       {!state.playerOpen && (
         <button
           {...noDrag}
