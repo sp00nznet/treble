@@ -7,9 +7,43 @@
 
 use crate::core::error::{CoreError, Result};
 use crate::core::tools;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+
+/// Download by fetching a resolved stream URL directly — no yt-dlp/ffmpeg needed.
+/// Saves the raw audio stream; the container (m4a / webm) is whatever the source
+/// serves, both of which play fine in the webview. Progress comes from
+/// Content-Length when present.
+pub fn download_native<F: FnMut(f32)>(url: &str, dir: &Path, id: &str, mut on_progress: F) -> Result<PathBuf> {
+    std::fs::create_dir_all(dir)?;
+    let resp = ureq::get(url).call().map_err(|e| CoreError::Network(e.to_string()))?;
+    let total: f64 = resp.header("Content-Length").and_then(|s| s.parse().ok()).unwrap_or(0.0);
+    let ext = match resp.content_type() {
+        ct if ct.contains("webm") => "webm",
+        ct if ct.contains("mp4") || ct.contains("m4a") || ct.contains("aac") => "m4a",
+        ct if ct.contains("mpeg") || ct.contains("mp3") => "mp3",
+        _ => "m4a",
+    };
+    let target = dir.join(format!("{id}.{ext}"));
+    let mut reader = resp.into_reader();
+    let mut file = std::fs::File::create(&target)?;
+    let mut buf = [0u8; 64 * 1024];
+    let mut written: f64 = 0.0;
+    loop {
+        let n = reader.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        file.write_all(&buf[..n])?;
+        written += n as f64;
+        if total > 0.0 {
+            on_progress(((written / total) * 100.0).min(99.0) as f32);
+        }
+    }
+    on_progress(100.0);
+    Ok(target)
+}
 
 /// Download a track's audio to `dir` as mp3. `on_progress` is called with 0.0–100.0.
 /// Returns the path to the finished file.

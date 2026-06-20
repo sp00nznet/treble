@@ -27,6 +27,7 @@ export function ImportModal() {
   const [sel, setSel] = useState<number[]>([]); // chosen candidate index per row (SKIP = skip)
   const [expanded, setExpanded] = useState<number | null>(null);
   const [result, setResult] = useState<CorePlaylist | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   const unlisten = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export function ImportModal() {
     setSel([]);
     setExpanded(null);
     setResult(null);
+    setErr(null);
     setText("");
   };
 
@@ -66,13 +68,15 @@ export function ImportModal() {
     if (!text.trim()) return;
     setPhase("matching");
     setProgress(null);
+    setErr(null);
     try {
       const r = await prepareImport(text);
       setRows(r);
       // Default selection: the top candidate (or skip when nothing was found).
       setSel(r.map((row) => (row.candidates.length ? 0 : SKIP)));
       setPhase("review");
-    } catch {
+    } catch (e) {
+      setErr(String(e));
       setPhase("input");
     }
   };
@@ -97,7 +101,9 @@ export function ImportModal() {
   const needsReview = rows.filter((r, i) => !r.confident && sel[i] >= 0).length;
 
   return (
-    <div className="modal-backdrop" onClick={close}>
+    // Backdrop does NOT dismiss — this is a multi-step wizard with text input, so an
+    // accidental click outside shouldn't throw away a paste. Close via the ✕ only.
+    <div className="modal-backdrop">
       <div className="modal" onClick={(e) => e.stopPropagation()} style={phase === "review" ? { maxWidth: 600 } : undefined}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
           <h2 className="h2" style={{ fontSize: 22 }}>Import from Spotify</h2>
@@ -110,6 +116,11 @@ export function ImportModal() {
               In Spotify, open a playlist, select the tracks (Ctrl/Cmd+A), copy them
               (Ctrl/Cmd+C), then paste below. We'll find matches on YouTube Music and let you review them.
             </p>
+            {err && (
+              <div style={{ background: "var(--surface)", border: "1px solid #e0463e55", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 12.5, color: "var(--text-2)" }}>
+                <b style={{ color: "#e0463e" }}>Import failed.</b> {err}
+              </div>
+            )}
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Playlist name" style={inputStyle} />
             <div style={{ position: "relative", marginTop: 12 }}>
               <textarea

@@ -176,7 +176,17 @@ pub fn download_track(app: AppHandle, lib: State<Arc<Library>>, track: Track) ->
         let emit = |pct: f32, done: bool, error: Option<String>| {
             let _ = app.emit("download:progress", DownloadProgress { id: id.clone(), pct, done, error });
         };
-        match downloads::download(&track.id, &dir, |pct| emit(pct, false, None)) {
+        // Prefer yt-dlp (best quality + mp3) when available; otherwise fetch the
+        // resolved stream URL directly so downloads work with no external tools.
+        let result = if tools::is_available("yt-dlp") {
+            downloads::download(&track.id, &dir, |pct| emit(pct, false, None))
+        } else {
+            match catalog::resolve_stream(&track.id) {
+                Ok(url) => downloads::download_native(&url, &dir, &track.id, |pct| emit(pct, false, None)),
+                Err(e) => Err(e),
+            }
+        };
+        match result {
             Ok(path) => {
                 let _ = lib.create_playlist("Downloads", std::slice::from_ref(&track)); // ensure track row exists
                 let _ = lib.mark_downloaded(&track.id, &path.to_string_lossy());

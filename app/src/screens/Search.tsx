@@ -11,6 +11,7 @@ export function Search() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const seq = useRef(0);
 
   // Debounced live search against the catalog (mock-filtered in the browser).
@@ -22,11 +23,17 @@ export function Search() {
       return;
     }
     setLoading(true);
+    setError(null);
     const mine = ++seq.current;
     const t = setTimeout(async () => {
       try {
         const r = await apiSearch(q);
         if (mine === seq.current) setResults(r);
+      } catch (e) {
+        if (mine === seq.current) {
+          setResults([]);
+          setError(String(e));
+        }
       } finally {
         if (mine === seq.current) setLoading(false);
       }
@@ -84,8 +91,13 @@ export function Search() {
         </>
       ) : (
         <>
+          {error && (
+            <div style={{ background: "var(--surface)", border: "1px solid #e0463e55", borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
+              <b style={{ color: "#e0463e" }}>Couldn't reach the catalog.</b> {error}
+            </div>
+          )}
           <h2 className="h2" style={{ fontSize: 20, marginBottom: 14 }}>
-            {results.length > 0 ? "Songs" : loading ? "Searching…" : "No results"}
+            {results.length > 0 ? "Songs" : loading ? "Searching…" : error ? "Something went wrong" : "No results"}
           </h2>
           <div>
             {results.map((t) => (

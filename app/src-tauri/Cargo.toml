@@ -37,9 +37,11 @@ local-ip-address = "0.6"
 rquickjs = { version = "0.9", features = ["bindgen"] }
 
 [features]
+# The native catalog (rustypipe / InnerTube) is ON by default so the app works
+# out of the box with NO external tools — search + streaming are pure Rust on
+# every platform. yt-dlp remains an optional download accelerator (see downloads).
+default = ["native-catalog"]
 custom-protocol = ["tauri/custom-protocol"]
-# Native cross-platform catalog (InnerTube via rustypipe) — the Android-parity
-# engine. Off by default so the desktop build stays lean (it uses yt-dlp).
 native-catalog = ["dep:rustypipe", "dep:tokio"]
 
 [dependencies.rustypipe]

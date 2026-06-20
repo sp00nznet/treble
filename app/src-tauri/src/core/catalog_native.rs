@@ -60,6 +60,31 @@ pub fn resolve_stream(id: &str) -> Result<String> {
     })?
 }
 
+#[cfg(test)]
+mod tests {
+    // Network test — run explicitly with:
+    //   cargo test --features native-catalog live_ -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn live_search() {
+        let r = super::search("daft punk get lucky", 3).expect("search failed");
+        for t in &r {
+            println!("  {} — {} ({})  id={}", t.title, t.artist, t.duration, t.id);
+        }
+        assert!(!r.is_empty(), "rustypipe returned no results");
+    }
+
+    #[test]
+    #[ignore]
+    fn live_stream() {
+        let r = super::search("rick astley never gonna give you up", 1).expect("search failed");
+        let id = &r[0].id;
+        let url = super::resolve_stream(id).expect("resolve failed");
+        println!("  stream URL for {id}: {}", &url[..url.len().min(80)]);
+        assert!(url.starts_with("http"));
+    }
+}
+
 fn track_from_item(t: rustypipe::model::TrackItem) -> Track {
     let secs = t.duration.unwrap_or(0);
     let artist = t
