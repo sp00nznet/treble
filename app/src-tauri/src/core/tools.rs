@@ -165,3 +165,14 @@ pub fn command(name: &str) -> Result<Command> {
     }
     Ok(new_command(&path))
 }
+
+/// Turn a track id into a yt-dlp target argument. A bare YouTube video id is
+/// wrapped in a full watch URL so ids that begin with `-` (e.g. `-grXcm3YGXM`)
+/// aren't mis-parsed by yt-dlp as command-line flags.
+pub fn ytdlp_target(id: &str) -> String {
+    if id.starts_with("http://") || id.starts_with("https://") {
+        id.to_string()
+    } else {
+        format!("https://www.youtube.com/watch?v={id}")
+    }
+}

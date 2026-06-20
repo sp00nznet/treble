@@ -86,7 +86,8 @@ pub fn resolve_stream(id: &str) -> Result<String> {
 /// yt-dlp-backed stream resolution.
 fn ytdlp_resolve_stream(id: &str) -> Result<String> {
     let out = tools::command("yt-dlp")?
-        .args(["-f", "bestaudio/best", "-g", "--no-warnings", id])
+        .args(["-f", "bestaudio/best", "-g", "--no-warnings"])
+        .arg(tools::ytdlp_target(id))
         .output()?;
     if !out.status.success() {
         return Err(CoreError::Process(String::from_utf8_lossy(&out.stderr).into_owned()));

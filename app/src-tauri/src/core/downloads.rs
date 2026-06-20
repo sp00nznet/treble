@@ -63,7 +63,8 @@ pub fn download<F: FnMut(f32)>(id: &str, dir: &Path, quality: &str, mut on_progr
             "-o",
         ])
         .arg(&out_template)
-        .args(["--newline", "--no-warnings", "--no-playlist", id])
+        .args(["--newline", "--no-warnings", "--no-playlist"])
+        .arg(tools::ytdlp_target(id))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
