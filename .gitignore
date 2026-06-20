@@ -32,3 +32,6 @@ Thumbs.db
 # build artifacts (do not commit large binaries)
 *.apk
 *.idsig
+
+# rustypipe HTTP cache (written at runtime)
+rustypipe_cache.json

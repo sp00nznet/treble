@@ -34,12 +34,21 @@ Under that pretty face, Treble pulls its catalog from **YouTube Music** (via a f
 
 ## The pitch, in pictures
 
+*Real screenshots of the desktop app (Windows build).*
+
 | | |
 |---|---|
-| ![Home](design/screenshots/desktop-home-light.png) | ![Now Playing](design/screenshots/desktop-now-playing.png) |
-| **Home** — warm, time-aware, yours | **Now Playing** — the lyrics-split signature view |
-| ![Library](design/screenshots/desktop-library.png) | ![Android](design/screenshots/mobile-android-home.png) |
-| **Library** — playlists, albums, artists, podcasts | **Android** — same app, in your pocket |
+| ![Home](screenshots/home.png) | ![Now Playing](screenshots/nowplaying.png) |
+| **Home** — warm, time-aware, your playlists front and center | **Now Playing** — docked studio panel, live scrubber, real playback |
+| ![Library](screenshots/library.png) | ![Playlist](screenshots/playlist.png) |
+| **Library** — playlists, Liked Songs, podcasts & local files | **Playlist** — sortable columns, star ratings, custom covers, bulk download |
+| ![Search](screenshots/search.png) | ![Settings](screenshots/settings.png) |
+| **Search** — instant YouTube Music results | **Settings** — theme, download quality & location, region |
+
+<p align="center">
+  <img src="screenshots/fullplayer.png" alt="Full-screen player" width="640"><br>
+  <em>The full-screen immersive player — album art, scrubber, transport, and a time-synced lyrics pane.</em>
+</p>
 
 ## ✨ Features
 
