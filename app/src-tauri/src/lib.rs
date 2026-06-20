@@ -20,6 +20,14 @@ pub fn run() {
             std::fs::create_dir_all(&data_dir).ok();
             core::log::init(data_dir.join("treble.log"));
             crate::tlog!("treble starting; data dir = {}", data_dir.display());
+
+            // yt-dlp powers reliable stream resolution (bypasses YouTube's 403).
+            // Auto-download it into app-data/bin in the background on first run.
+            core::tools::set_app_bin(data_dir.join("bin"));
+            std::thread::spawn(|| {
+                core::tools::ensure_ytdlp();
+            });
+
             let lib = Library::open(&data_dir.join("treble.db"))
                 .map_err(|e| format!("failed to open library: {e}"))?;
             app.manage(Arc::new(lib));

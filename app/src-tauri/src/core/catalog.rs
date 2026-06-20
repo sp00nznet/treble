@@ -67,9 +67,15 @@ fn ytdlp_search(query: &str, limit: u32) -> Result<Vec<Track>> {
 /// Resolve a direct, streamable audio URL for a catalog id.
 /// The URL is temporary (signed) — resolve on demand, don't persist it.
 pub fn resolve_stream(id: &str) -> Result<String> {
+    // yt-dlp uses YouTube's Android-VR client and bypasses the bot-detection 403
+    // that the native (rustypipe) stream endpoint now hits — so prefer it whenever
+    // it's available (auto-downloaded on desktop; see core::tools::ensure_ytdlp).
+    if tools::ensure_ytdlp() {
+        return ytdlp_resolve_stream(id);
+    }
     #[cfg(feature = "native-catalog")]
     {
-        return crate::core::catalog_native::resolve_stream(id);
+        crate::core::catalog_native::resolve_stream(id)
     }
     #[cfg(not(feature = "native-catalog"))]
     {
@@ -77,8 +83,7 @@ pub fn resolve_stream(id: &str) -> Result<String> {
     }
 }
 
-/// yt-dlp-backed stream resolution (desktop default).
-#[cfg_attr(feature = "native-catalog", allow(dead_code))]
+/// yt-dlp-backed stream resolution.
 fn ytdlp_resolve_stream(id: &str) -> Result<String> {
     let out = tools::command("yt-dlp")?
         .args(["-f", "bestaudio/best", "-g", "--no-warnings", id])

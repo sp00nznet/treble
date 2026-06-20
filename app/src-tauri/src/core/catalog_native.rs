@@ -206,6 +206,27 @@ mod tests {
 
     #[test]
     #[ignore]
+    fn live_stream_fetchable() {
+        let r = super::search("rick astley never gonna give you up", 1).expect("search");
+        let url = super::resolve_stream(&r[0].id).expect("resolve");
+        println!("URL host: {}", url.split('/').nth(2).unwrap_or("?"));
+        // Mimic what an <audio> element does: a ranged GET.
+        let resp = ureq::get(&url).set("Range", "bytes=0-2047").call();
+        match resp {
+            Ok(r) => println!(
+                "OK status={} type={:?} len={:?} accept-ranges={:?}",
+                r.status(),
+                r.header("content-type"),
+                r.header("content-length"),
+                r.header("accept-ranges"),
+            ),
+            Err(ureq::Error::Status(c, r)) => println!("HTTP {} type={:?}", c, r.header("content-type")),
+            Err(e) => println!("ERR {e}"),
+        }
+    }
+
+    #[test]
+    #[ignore]
     fn live_bulk() {
         use crate::core::models::ParsedTrack;
         use std::sync::atomic::AtomicBool;

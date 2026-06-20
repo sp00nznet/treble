@@ -328,7 +328,7 @@ pub fn download_track(app: AppHandle, lib: State<Arc<Library>>, track: Track) ->
         };
         // Prefer yt-dlp (best quality + mp3) when available; otherwise fetch the
         // resolved stream URL directly so downloads work with no external tools.
-        let result = if tools::is_available("yt-dlp") {
+        let result = if tools::ensure_ytdlp() {
             downloads::download(&track.id, &dir, |pct| emit(pct, false, None))
         } else {
             match catalog::resolve_stream(&track.id) {
