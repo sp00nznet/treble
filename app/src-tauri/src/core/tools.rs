@@ -17,6 +17,22 @@ pub fn set_app_bin(dir: PathBuf) {
     let _ = APP_BIN.set(dir);
 }
 
+/// Create a `Command` with `CREATE_NO_WINDOW` on Windows. Without this, a GUI app
+/// (windows_subsystem=windows, no console) spawning a console tool like yt-dlp
+/// HANGS waiting on a console — this is why playback "did nothing".
+fn new_command(path: &str) -> Command {
+    let c = Command::new(path);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut c = c;
+        c.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        return c;
+    }
+    #[allow(unreachable_code)]
+    c
+}
+
 /// Platform-specific executable name.
 fn exe(name: &str) -> String {
     if cfg!(windows) {
@@ -116,7 +132,7 @@ fn download(url: &str, dest: &std::path::Path) -> Result<()> {
 /// True if a tool can actually be invoked (used for friendly "missing tool" errors).
 pub fn is_available(name: &str) -> bool {
     let path = resolve(name);
-    Command::new(&path)
+    new_command(&path)
         .arg("--version")
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
@@ -131,5 +147,5 @@ pub fn command(name: &str) -> Result<Command> {
     if !is_available(name) {
         return Err(CoreError::ToolMissing(name.to_string()));
     }
-    Ok(Command::new(path))
+    Ok(new_command(&path))
 }
