@@ -107,6 +107,51 @@ pub fn import_spotify(
     lib.get_playlist(&id).map(|o| o.unwrap_or_default())
 }
 
+/// One row of the "smart match" review: the parsed Spotify track + its ranked
+/// candidates. `confident` is true when the top candidate is a strong match (so
+/// the UI can auto-accept it and only surface the uncertain ones for review).
+#[derive(Serialize, Clone)]
+pub struct MatchRow {
+    pub parsed: ParsedTrack,
+    pub candidates: Vec<Track>,
+    pub confident: bool,
+}
+
+/// Parse a pasted Spotify selection and, for each track, fetch ranked YouTube
+/// Music candidates for review — instead of silently guessing. Emits
+/// `import:progress`. The frontend lets the user confirm/override before saving.
+#[tauri::command]
+pub fn prepare_import(app: AppHandle, text: String) -> CmdResult<Vec<MatchRow>> {
+    let parsed = spotify_import::parse(&text);
+    let total = parsed.len();
+    let mut rows = Vec::with_capacity(total);
+    for (i, p) in parsed.iter().enumerate() {
+        let _ = app.emit(
+            "import:progress",
+            ImportProgress { done: i, total, matched: rows.len(), current: format!("{} — {}", p.title, p.artist) },
+        );
+        let scored = catalog::match_candidates(p, 4).unwrap_or_default();
+        let confident = scored.first().map(|(_, s)| *s >= catalog::CONFIDENT_SCORE).unwrap_or(false);
+        rows.push(MatchRow {
+            parsed: p.clone(),
+            candidates: scored.into_iter().map(|(t, _)| t).collect(),
+            confident,
+        });
+    }
+    let _ = app.emit(
+        "import:progress",
+        ImportProgress { done: total, total, matched: rows.len(), current: String::new() },
+    );
+    Ok(rows)
+}
+
+/// Save the user's confirmed track selections as a real, playable playlist.
+#[tauri::command]
+pub fn save_matched_playlist(lib: State<Arc<Library>>, name: String, tracks: Vec<Track>) -> CmdResult<Playlist> {
+    let id = lib.create_playlist(&name, &tracks)?;
+    lib.get_playlist(&id).map(|o| o.unwrap_or_default())
+}
+
 /// Download payload streamed to the Downloads screen.
 #[derive(Serialize, Clone)]
 struct DownloadProgress {

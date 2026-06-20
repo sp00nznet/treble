@@ -69,6 +69,13 @@ export interface ImportProgress {
   current: string;
 }
 
+/** One row of the smart-match review (mirrors commands::MatchRow). */
+export interface MatchRow {
+  parsed: ParsedTrack;
+  candidates: Track[];
+  confident: boolean;
+}
+
 // ---- invoke / event plumbing (lazy-imported so the browser build is clean) ----
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -168,6 +175,27 @@ export async function importSpotify(name: string, text: string): Promise<CorePla
     return { id: `imported-${name}`, title: name, subtitle: `${tracks.length} songs`, art: tracks[0]?.art ?? "", tracks };
   }
   return invoke<CorePlaylist>("import_spotify", { name, text });
+}
+
+/** Smart match: parse + fetch ranked candidates per track for user review (no silent guessing). */
+export async function prepareImport(text: string): Promise<MatchRow[]> {
+  if (!isTauri()) {
+    const parsed = localParseSpotify(text);
+    return parsed.map((p, i) => {
+      const pick = TRACKS[i % TRACKS.length];
+      const alts = [pick, TRACKS[(i + 1) % TRACKS.length], TRACKS[(i + 2) % TRACKS.length]];
+      return { parsed: p, candidates: alts, confident: i % 3 !== 0 }; // ~1/3 flagged for review in preview
+    });
+  }
+  return invoke<MatchRow[]>("prepare_import", { text });
+}
+
+/** Save the user's confirmed selections as a real playlist. */
+export async function saveMatchedPlaylist(name: string, tracks: Track[]): Promise<CorePlaylist> {
+  if (!isTauri()) {
+    return { id: `imported-${name}`, title: name, subtitle: `${tracks.length} songs`, art: tracks[0]?.art ?? "", tracks };
+  }
+  return invoke<CorePlaylist>("save_matched_playlist", { name, tracks });
 }
 
 export async function listPlaylists(): Promise<CorePlaylist[]> {

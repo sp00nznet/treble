@@ -31,6 +31,8 @@ fn main() {
             commands::get_lyrics,
             commands::parse_spotify,
             commands::import_spotify,
+            commands::prepare_import,
+            commands::save_matched_playlist,
             commands::list_playlists,
             commands::get_playlist,
             commands::list_downloads,

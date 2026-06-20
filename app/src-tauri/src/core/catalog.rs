@@ -119,6 +119,30 @@ pub fn match_track(parsed: &ParsedTrack) -> Result<Option<Track>> {
     Ok(best.filter(|(s, _)| *s > 0.3).map(|(_, t)| t))
 }
 
+/// Confidence threshold above which a match is taken automatically (no review).
+pub const CONFIDENT_SCORE: f64 = 0.62;
+
+/// Return up to `limit` candidates for a parsed track, sorted best-first, each
+/// paired with its 0.0–1.0 match score. Powers the "smart match" review UI.
+pub fn match_candidates(parsed: &ParsedTrack, limit: usize) -> Result<Vec<(Track, f64)>> {
+    let query = if parsed.artist.is_empty() {
+        parsed.title.clone()
+    } else {
+        format!("{} {}", parsed.title, parsed.artist)
+    };
+    let want_secs = parse_duration(&parsed.duration);
+    let mut scored: Vec<(Track, f64)> = search(&query, 6)?
+        .into_iter()
+        .map(|t| {
+            let s = score_match(parsed, &t, want_secs);
+            (t, s)
+        })
+        .collect();
+    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    scored.truncate(limit);
+    Ok(scored)
+}
+
 /// 0.0–1.0 similarity of a candidate to what we're looking for.
 fn score_match(parsed: &ParsedTrack, cand: &Track, want_secs: Option<u32>) -> f64 {
     let title = token_overlap(&parsed.title, &cand.title);
