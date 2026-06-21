@@ -54,20 +54,12 @@ pub async fn resolve_stream(sync: State<'_, Arc<SyncService>>, id: String) -> Cm
     let sync = sync.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         crate::tlog!("resolve_stream: {id}");
-        // Desktop (yt-dlp present) resolves locally. A phone has no yt-dlp and the
-        // native client is gated now, so it borrows a desktop "companion" on the
-        // LAN. Native is the last resort.
-        if tools::ensure_ytdlp() {
-            let r = catalog::resolve_stream(&id);
-            match &r { Ok(u) => crate::tlog!("resolve_stream ok ({} chars)", u.len()), Err(e) => crate::tlog!("resolve_stream ERR: {e}") }
-            return r;
+        let r = resolve_any(&sync, &id);
+        match &r {
+            Ok(u) => crate::tlog!("resolve_stream ok ({} chars)", u.len()),
+            Err(e) => crate::tlog!("resolve_stream ERR: {e}"),
         }
-        if let Some(u) = sync.resolve_via_peer(&id) {
-            crate::tlog!("resolve_stream ok via companion ({} chars)", u.len());
-            return Ok(u);
-        }
-        crate::tlog!("no companion; trying native resolve");
-        catalog::resolve_stream(&id)
+        r
     })
     .await
     .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
@@ -453,9 +445,38 @@ fn quality_arg(lib: &Library) -> String {
 /// Fetch one track to `dir`, emitting `download:progress`. Blocking — callers run
 /// it on a background thread (one-shot for `download_track`, in a loop for
 /// `download_many`). Records the file in the library and ensures the row exists.
-/// Resolve a playable stream URL, companion-aware: local yt-dlp (desktop) → a
-/// desktop companion on the LAN (phones) → native client (last resort).
+/// Ask the in-app NewPipeExtractor service (Android only) to resolve a playable
+/// URL. It runs YouTube's player-JS deobfuscation on-device (like NewPipe) and is
+/// served over localhost so we can call it like any other resolver.
+#[cfg(target_os = "android")]
+fn newpipe_resolve(id: &str) -> Option<String> {
+    let url = format!("http://127.0.0.1:28923/resolve?id={id}");
+    let body = ureq::get(&url)
+        .timeout(std::time::Duration::from_secs(30))
+        .call()
+        .ok()?
+        .into_string()
+        .ok()?;
+    if body.starts_with("http") {
+        crate::tlog!("resolved on-device via NewPipe ({} chars)", body.len());
+        Some(body)
+    } else {
+        crate::tlog!("on-device NewPipe could not resolve");
+        None
+    }
+}
+#[cfg(not(target_os = "android"))]
+fn newpipe_resolve(_id: &str) -> Option<String> {
+    None
+}
+
+/// Resolve a playable stream URL across every available backend:
+/// on-device NewPipeExtractor (Android) → local yt-dlp (desktop) → a desktop
+/// companion on the LAN (phones) → the native rustypipe client (last resort).
 fn resolve_any(sync: &SyncService, id: &str) -> CmdResult<String> {
+    if let Some(u) = newpipe_resolve(id) {
+        return Ok(u);
+    }
     if tools::ensure_ytdlp() {
         return catalog::resolve_stream(id);
     }
@@ -671,11 +692,25 @@ pub fn list_peers(sync: State<Arc<SyncService>>) -> Vec<Peer> {
     sync.list_peers()
 }
 
-/// Whether a desktop "companion" (with the resolve API) is reachable on the LAN —
-/// the phone needs one to stream (it can't run yt-dlp itself).
+/// Whether this device can stream at all: the in-app NewPipe resolver is up
+/// (Android), or a desktop companion is reachable on the LAN. Drives the phone's
+/// "open Treble on your computer" hint (shown only when neither is available).
 #[tauri::command]
 pub fn companion_status(sync: State<Arc<SyncService>>) -> bool {
-    sync.has_companion()
+    newpipe_up() || sync.has_companion()
+}
+
+#[cfg(target_os = "android")]
+fn newpipe_up() -> bool {
+    ureq::get("http://127.0.0.1:28923/ping")
+        .timeout(std::time::Duration::from_secs(2))
+        .call()
+        .map(|r| r.into_string().map(|s| s.contains("newpipe")).unwrap_or(false))
+        .unwrap_or(false)
+}
+#[cfg(not(target_os = "android"))]
+fn newpipe_up() -> bool {
+    false
 }
 
 /// Send a track / playlist / snapshot to a peer by device id.
