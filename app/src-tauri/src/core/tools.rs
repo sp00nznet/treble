@@ -84,6 +84,15 @@ fn ytdlp_url() -> &'static str {
 /// yt-dlp is needed because it bypasses YouTube's bot-detection that 403s the
 /// native client on the stream endpoint. Returns true if usable afterwards.
 pub fn ensure_ytdlp() -> bool {
+    // yt-dlp is a desktop-only helper — it's a native binary that can't run on
+    // Android/iOS, so never try to download it there (it would just waste mobile
+    // data on a binary that can't execute). Mobile uses the native rustypipe path.
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    {
+        return false;
+    }
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
     use std::sync::atomic::{AtomicBool, Ordering};
     static READY: AtomicBool = AtomicBool::new(false);
     if READY.load(Ordering::Relaxed) {
@@ -114,6 +123,7 @@ pub fn ensure_ytdlp() -> bool {
             crate::tlog!("yt-dlp download failed: {e}");
             false
         }
+    }
     }
 }
 
