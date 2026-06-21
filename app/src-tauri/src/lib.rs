@@ -81,6 +81,7 @@ pub fn run() {
             commands::pick_folder,
             commands::scan_local_folder,
             commands::list_peers,
+            commands::companion_status,
             commands::send_to,
         ])
         .run(tauri::generate_context!())

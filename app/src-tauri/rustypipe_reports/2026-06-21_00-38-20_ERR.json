@@ -1,0 +1,26 @@
+{
+  "info": {
+    "package": "rustypipe",
+    "version": "0.11.4",
+    "date": "2026-06-21T00:38:20Z",
+    "language": "en",
+    "botguard_version": null
+  },
+  "level": "ERR",
+  "operation": "player(9bZkp7q19f0)",
+  "error": "http status code: 403 message: ",
+  "http_request": {
+    "url": "https://youtubei.googleapis.com/youtubei/v1/player?prettyPrint=false",
+    "method": "POST",
+    "req_header": {
+      "content-type": "application/json",
+      "user-agent": "com.google.ios.youtube/20.03.02 (iPhone16,2; U; CPU iOS 18_2_1 like Mac OS X)",
+      "x-goog-api-format-version": "2",
+      "x-goog-eom-visitor-id": "CgtDa0NySnhNd2ltWSjz5NzRBjIKCgJVUxIEGgAgJ2LfAgrcAjE5LllUPWQ0bnJKRGJXM0JHU1ZOQ3UyV2s5elhHem5JSFkyNDBJZzBiSnJfS25HamY0OVcwV2tLYkZ6U2llTmJvM1ZucEdlU0ZsTFZYRlpqS0JnSG9aTnJ4Z2ZWdHZYQ29xMjVmVDJIR1dSU1RXTkZDTy00akM2OFdNSkxMR3J1YmhkRTZVaE9Wb1BVaENjU3JnSTl0OHg3cEFVZzllR29tSkxnUDNaQ0VHRnFfZWlSZjJ2WUE2Rm5JdW00UDUyand1RWdPXzdsWE5walVvOGhHX01KSDFvM0RLNkVyRDd5Qzk5X1BNUGNPaEFqcHFpNmV1WGoxQnRwWjJreXh0QndvUDRrUkpydVJsbFBtb18xaEc4SjBsdjF1Sjd6MDVyTGRKLVM0dFc4dFVkQ0NkTElfYVd1cjJnbmlqUnM5MGRzZkUwMmhMb2huSUlJak1XWHpUMnQxeGFuMFA3Zw%3D%3D",
+      "x-youtube-client-name": "5"
+    },
+    "req_body": "{\"context\":{\"client\":{\"clientName\":\"IOS\",\"clientVersion\":\"20.03.02\",\"deviceModel\":\"iPhone16,2\",\"osName\":\"iPhone\",\"osVersion\":\"18.2.1.22C161\",\"platform\":\"MOBILE\",\"visitorData\":\"CgtDa0NySnhNd2ltWSjz5NzRBjIKCgJVUxIEGgAgJ2LfAgrcAjE5LllUPWQ0bnJKRGJXM0JHU1ZOQ3UyV2s5elhHem5JSFkyNDBJZzBiSnJfS25HamY0OVcwV2tLYkZ6U2llTmJvM1ZucEdlU0ZsTFZYRlpqS0JnSG9aTnJ4Z2ZWdHZYQ29xMjVmVDJIR1dSU1RXTkZDTy00akM2OFdNSkxMR3J1YmhkRTZVaE9Wb1BVaENjU3JnSTl0OHg3cEFVZzllR29tSkxnUDNaQ0VHRnFfZWlSZjJ2WUE2Rm5JdW00UDUyand1RWdPXzdsWE5walVvOGhHX01KSDFvM0RLNkVyRDd5Qzk5X1BNUGNPaEFqcHFpNmV1WGoxQnRwWjJreXh0QndvUDRrUkpydVJsbFBtb18xaEc4SjBsdjF1Sjd6MDVyTGRKLVM0dFc4dFVkQ0NkTElfYVd1cjJnbmlqUnM5MGRzZkUwMmhMb2huSUlJak1XWHpUMnQxeGFuMFA3Zw%3D%3D\",\"hl\":\"en\",\"gl\":\"US\",\"timeZone\":\"UTC\",\"utcOffsetMinutes\":0},\"user\":{\"lockedSafetyMode\":false}},\"videoId\":\"9bZkp7q19f0\",\"contentCheckOk\":true,\"racyCheckOk\":true}",
+    "status": 403,
+    "resp_body": "<html><head><meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/><title>Sorry...</title><style> body { font-family: verdana, arial, sans-serif; background-color: #fff; color: #000; }</style></head><body><div><table><tr><td><b><font face=sans-serif size=10><font color=#4285f4>G</font><font color=#ea4335>o</font><font color=#fbbc05>o</font><font color=#4285f4>g</font><font color=#34a853>l</font><font color=#ea4335>e</font></font></b></td><td style=\"text-align: left; vertical-align: bottom; padding-bottom: 15px; width: 50%\"><div style=\"border-bottom: 1px solid #dfdfdf;\">Sorry...</div></td></tr></table></div><div style=\"margin-left: 4em;\"><h1>We're sorry...</h1><p>... but your computer or network may be sending automated queries. To protect our users, we can't process your request right now.</p></div><div style=\"margin-left: 4em;\">See <a href=\"https://support.google.com/websearch/answer/86640\">Google Help</a> for more information.<br/><br/></div><div style=\"text-align: center; border-top: 1px solid #dfdfdf;\"><a href=\"https://www.google.com\">Google Home</a></div></body></html>"
+  }
+}

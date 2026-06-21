@@ -50,15 +50,24 @@ pub async fn search(query: String) -> CmdResult<Vec<Track>> {
 }
 
 #[tauri::command]
-pub async fn resolve_stream(id: String) -> CmdResult<String> {
+pub async fn resolve_stream(sync: State<'_, Arc<SyncService>>, id: String) -> CmdResult<String> {
+    let sync = sync.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         crate::tlog!("resolve_stream: {id}");
-        let r = catalog::resolve_stream(&id);
-        match &r {
-            Ok(u) => crate::tlog!("resolve_stream ok ({} chars)", u.len()),
-            Err(e) => crate::tlog!("resolve_stream ERR: {e}"),
+        // Desktop (yt-dlp present) resolves locally. A phone has no yt-dlp and the
+        // native client is gated now, so it borrows a desktop "companion" on the
+        // LAN. Native is the last resort.
+        if tools::ensure_ytdlp() {
+            let r = catalog::resolve_stream(&id);
+            match &r { Ok(u) => crate::tlog!("resolve_stream ok ({} chars)", u.len()), Err(e) => crate::tlog!("resolve_stream ERR: {e}") }
+            return r;
         }
-        r
+        if let Some(u) = sync.resolve_via_peer(&id) {
+            crate::tlog!("resolve_stream ok via companion ({} chars)", u.len());
+            return Ok(u);
+        }
+        crate::tlog!("no companion; trying native resolve");
+        catalog::resolve_stream(&id)
     })
     .await
     .map_err(|e| crate::core::error::CoreError::Other(e.to_string()))?
@@ -645,6 +654,13 @@ pub async fn scan_local_folder(lib: State<'_, Arc<Library>>, folder: String) -> 
 #[tauri::command]
 pub fn list_peers(sync: State<Arc<SyncService>>) -> Vec<Peer> {
     sync.list_peers()
+}
+
+/// Whether a desktop "companion" (with the resolve API) is reachable on the LAN —
+/// the phone needs one to stream (it can't run yt-dlp itself).
+#[tauri::command]
+pub fn companion_status(sync: State<Arc<SyncService>>) -> bool {
+    sync.has_companion()
 }
 
 /// Send a track / playlist / snapshot to a peer by device id.

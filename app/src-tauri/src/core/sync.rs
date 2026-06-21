@@ -17,9 +17,10 @@ use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
 const SERVICE_TYPE: &str = "_treble._tcp.local.";
@@ -41,7 +42,8 @@ pub struct Snapshot {
 pub struct Peer {
     pub device_id: String,
     pub name: String,
-    pub addr: String, // "ip:port"
+    pub addr: String,      // "ip:port" — the send-to JSON listener
+    pub http_addr: String, // "ip:port" — the companion HTTP API (resolve/search). Empty if none.
 }
 
 /// Something one device sends to another.
@@ -102,6 +104,13 @@ impl SyncService {
         let port = listener.local_addr().map(|a| a.port()).unwrap_or(0);
         spawn_listener(listener, app.clone());
 
+        // 1b. Companion HTTP API (stream resolve / search) — the engine behind
+        // "use my desktop to play on my phone": a phone with no yt-dlp asks a
+        // desktop peer to resolve a playable URL, then streams it directly.
+        let http_listener = TcpListener::bind("0.0.0.0:0").map_err(|e| CoreError::Other(e.to_string()))?;
+        let http_port = http_listener.local_addr().map(|a| a.port()).unwrap_or(0);
+        spawn_http_server(http_listener);
+
         // 2. Local IP for advertising.
         let ip = local_ip_address::local_ip()
             .map(|i| i.to_string())
@@ -110,13 +119,18 @@ impl SyncService {
         // 3. mDNS daemon: register our service + browse for peers.
         let daemon = ServiceDaemon::new().map_err(|e| CoreError::Other(e.to_string()))?;
         let host = format!("treble-{}.local.", identity.device_id);
+        let http_port_s = http_port.to_string();
         let info = ServiceInfo::new(
             SERVICE_TYPE,
             &identity.name,
             &host,
             ip.as_str(),
             port,
-            &[("id", identity.device_id.as_str()), ("name", identity.name.as_str())][..],
+            &[
+                ("id", identity.device_id.as_str()),
+                ("name", identity.name.as_str()),
+                ("http", http_port_s.as_str()),
+            ][..],
         )
         .map_err(|e| CoreError::Other(e.to_string()))?;
         daemon.register(info).map_err(|e| CoreError::Other(e.to_string()))?;
@@ -133,6 +147,31 @@ impl SyncService {
 
     pub fn device_id(&self) -> &str {
         &self.identity.device_id
+    }
+
+    /// Ask any desktop companion on the LAN to resolve a playable stream URL for
+    /// a video id (it runs yt-dlp). Returns the first peer that answers. This is
+    /// how a phone (which can't run yt-dlp) plays YouTube: resolve via the desktop,
+    /// then stream the URL directly.
+    pub fn resolve_via_peer(&self, id: &str) -> Option<String> {
+        let peers = self.peers.lock().unwrap().clone();
+        for p in peers.iter().filter(|p| !p.http_addr.is_empty()) {
+            let url = format!("http://{}/resolve?id={}", p.http_addr, id);
+            if let Ok(resp) = ureq::get(&url).timeout(Duration::from_secs(25)).call() {
+                if let Ok(body) = resp.into_string() {
+                    if body.starts_with("http") {
+                        crate::tlog!("companion {} resolved a stream", p.name);
+                        return Some(body);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// True if at least one desktop companion (with the HTTP API) is reachable.
+    pub fn has_companion(&self) -> bool {
+        self.peers.lock().unwrap().iter().any(|p| !p.http_addr.is_empty())
     }
 
     /// Send a message to a known peer (by device id).
@@ -170,6 +209,82 @@ fn spawn_listener(listener: TcpListener, app: AppHandle) {
     });
 }
 
+/// Companion HTTP API: a tiny request/response server so phones can borrow this
+/// desktop's catalog engine (yt-dlp). Hand-rolled HTTP/1.1 (GET only) — no extra
+/// dependency. Routes: `/resolve?id=`, `/search?q=&limit=`, `/ping`.
+fn spawn_http_server(listener: TcpListener) {
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(stream) = stream else { continue };
+            std::thread::spawn(move || { let _ = handle_http(stream); });
+        }
+    });
+}
+
+fn handle_http(mut stream: TcpStream) -> std::io::Result<()> {
+    let mut reader = BufReader::new(stream.try_clone()?);
+    let mut line = String::new();
+    reader.read_line(&mut line)?;
+    let path = line.split_whitespace().nth(1).unwrap_or("/").to_string();
+    let (route, query) = path.split_once('?').unwrap_or((path.as_str(), ""));
+
+    let (status, ctype, body): (&str, &str, String) = match route {
+        "/resolve" => match query_get(query, "id") {
+            Some(id) => match crate::core::catalog::resolve_stream(&id) {
+                Ok(u) => ("200 OK", "text/plain", u),
+                Err(e) => ("502 Bad Gateway", "text/plain", e.to_string()),
+            },
+            None => ("400 Bad Request", "text/plain", "missing id".into()),
+        },
+        "/search" => {
+            let q = query_get(query, "q").map(|s| url_decode(&s)).unwrap_or_default();
+            let limit = query_get(query, "limit").and_then(|s| s.parse().ok()).unwrap_or(30);
+            let tracks = crate::core::catalog::search(&q, limit).unwrap_or_default();
+            ("200 OK", "application/json", serde_json::to_string(&tracks).unwrap_or_else(|_| "[]".into()))
+        }
+        "/ping" => ("200 OK", "text/plain", "treble".into()),
+        _ => ("404 Not Found", "text/plain", "not found".into()),
+    };
+
+    let resp = format!(
+        "HTTP/1.1 {status}\r\nContent-Type: {ctype}\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    stream.write_all(resp.as_bytes())?;
+    Ok(())
+}
+
+/// Get a value from a `k=v&k2=v2` query string.
+fn query_get(query: &str, key: &str) -> Option<String> {
+    query.split('&').find_map(|kv| {
+        let (k, v) = kv.split_once('=')?;
+        if k == key { Some(v.to_string()) } else { None }
+    })
+}
+
+/// Minimal URL-decode (`%XX` + `+`) for the search query.
+fn url_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = String::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        match b[i] {
+            b'+' => out.push(' '),
+            b'%' if i + 2 < b.len() => {
+                if let Ok(c) = u8::from_str_radix(&s[i + 1..i + 3], 16) {
+                    out.push(c as char);
+                    i += 3;
+                    continue;
+                }
+                out.push('%');
+            }
+            c => out.push(c as char),
+        }
+        i += 1;
+    }
+    out
+}
+
 /// Track peers as they resolve / disappear; emit found/lost events. Skips self.
 fn spawn_browser(
     browse: mdns_sd::Receiver<ServiceEvent>,
@@ -192,16 +307,14 @@ fn spawn_browser(
                         .get_property_val_str("name")
                         .map(|s| s.to_string())
                         .unwrap_or_else(|| info.get_fullname().to_string());
-                    let addr = info
-                        .get_addresses()
-                        .iter()
-                        .next()
-                        .map(|a| format!("{a}:{}", info.get_port()))
+                    let host_ip = info.get_addresses().iter().next().map(|a| a.to_string());
+                    let Some(host_ip) = host_ip else { continue };
+                    let addr = format!("{host_ip}:{}", info.get_port());
+                    let http_addr = info
+                        .get_property_val_str("http")
+                        .map(|p| format!("{host_ip}:{p}"))
                         .unwrap_or_default();
-                    if addr.is_empty() {
-                        continue;
-                    }
-                    let peer = Peer { device_id: id.clone(), name, addr };
+                    let peer = Peer { device_id: id.clone(), name, addr, http_addr };
                     {
                         let mut list = peers.lock().unwrap();
                         if !list.iter().any(|p| p.device_id == id) {

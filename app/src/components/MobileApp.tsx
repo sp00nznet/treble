@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Home as HomeIcon, Search as SearchIcon, Library as LibIcon, Settings as SetIcon,
   Play, Pause, Heart, ChevronLeft, ChevronDown, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
@@ -7,6 +7,7 @@ import {
 import { useStore } from "../store";
 import { useLike } from "../lib/useLike";
 import { useSyncedLyrics } from "../lib/useSyncedLyrics";
+import { companionStatus } from "../lib/api";
 import { coverBg } from "../lib/art";
 import { fmtTime } from "../lib/format";
 import { Scrubber } from "./Scrubber";
@@ -49,12 +50,23 @@ export function MobileApp() {
   const np = state.nowPlaying;
   const active = navGroup(state.screen);
   const onTopTab = TOP_LEVEL.has(state.screen);
+  const [companion, setCompanion] = useState(true);
 
   // Suppress the webview's long-press context menu (we open our own on rows).
   useEffect(() => {
     const onCtx = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest("input,textarea")) e.preventDefault(); };
     document.addEventListener("contextmenu", onCtx);
     return () => document.removeEventListener("contextmenu", onCtx);
+  }, []);
+
+  // A phone can't run yt-dlp, so it streams via a desktop "companion" on the LAN.
+  // Poll for one and warn if none is found.
+  useEffect(() => {
+    let live = true;
+    const check = () => companionStatus().then((c) => live && setCompanion(c)).catch(() => {});
+    check();
+    const t = setInterval(check, 5000);
+    return () => { live = false; clearInterval(t); };
   }, []);
 
   return (
@@ -64,6 +76,11 @@ export function MobileApp() {
           <button className="m-back press" onClick={() => dispatch({ type: "navBack" })} aria-label="Back">
             <ChevronLeft size={24} />
           </button>
+        )}
+        {!companion && (
+          <div style={{ margin: "8px 16px 0", padding: "10px 14px", borderRadius: 12, background: "var(--accent-soft)", border: "1px solid var(--border)", fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.5 }}>
+            <b style={{ color: "var(--accent)" }}>Open Treble on your computer</b> (same Wi-Fi) to stream — the phone plays through your desktop. Local files &amp; downloads work without it.
+          </div>
         )}
         {renderScreen(state.screen)}
       </main>

@@ -47,6 +47,7 @@ export interface Peer {
   device_id: string;
   name: string;
   addr: string;
+  http_addr: string; // companion HTTP API (resolve/search); empty if none
 }
 
 /** A message sent to a peer device (mirrors core::sync::SendMessage). */
@@ -184,6 +185,12 @@ export async function scanLocalFolder(folder: string): Promise<CorePlaylist> {
 export async function listPeers(): Promise<Peer[]> {
   if (!isTauri()) return [];
   return invoke<Peer[]>("list_peers");
+}
+
+/** Is a desktop companion (yt-dlp resolver) reachable on the LAN? Phones need one to stream. */
+export async function companionStatus(): Promise<boolean> {
+  if (!isTauri()) return false;
+  return invoke<boolean>("companion_status").catch(() => false);
 }
 
 export async function sendTo(peerId: string, message: SendMessage): Promise<void> {
