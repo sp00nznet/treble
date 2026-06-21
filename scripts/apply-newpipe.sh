@@ -59,3 +59,13 @@ if ! grep -q "desugar_jdk_libs" "$APP_GRADLE"; then
   perl -0pi -e 's/(implementation\("org.nanohttpd[^\n]*\n)/$1    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.2")\n/' "$APP_GRADLE"
 fi
 echo "+ release minify off + desugaring"
+
+# 7. po_token (BotGuard) — rxjava deps, HTML asset, potoken/ kotlin
+if ! grep -q "rxjava" "$APP_GRADLE"; then
+  perl -0pi -e 's/(implementation\("org.nanohttpd[^\n]*\n)/$1    implementation("io.reactivex.rxjava3:rxjava:3.1.8")\n    implementation("io.reactivex.rxjava3:rxandroid:3.0.2")\n/' "$APP_GRADLE"
+  echo "+ rxjava deps"
+fi
+mkdir -p "$GEN/app/src/main/assets" "$PKG/potoken"
+cp "$ROOT/android-newpipe/po_token.html" "$GEN/app/src/main/assets/po_token.html"
+cp "$ROOT/android-newpipe/potoken/"*.kt "$PKG/potoken/"
+echo "+ po_token.html + potoken/*.kt"
