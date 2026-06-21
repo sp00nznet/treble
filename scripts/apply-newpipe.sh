@@ -48,3 +48,14 @@ if ! grep -q "NewPipeResolver.start" "$PKG/MainActivity.kt"; then
   echo "+ MainActivity hook"
 fi
 echo "done."
+
+# 6. Release: minify OFF (R8 breaks Rhino) + core library desugaring
+APP_GRADLE="$GEN/app/build.gradle.kts"
+perl -0pi -e 's/getByName\("release"\) \{\s*isMinifyEnabled = true.*?\n        \}/getByName("release") {\n            isMinifyEnabled = false\n        }/s' "$APP_GRADLE"
+if ! grep -q "isCoreLibraryDesugaringEnabled" "$APP_GRADLE"; then
+  perl -0pi -e 's/(    kotlinOptions \{)/    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n        sourceCompatibility = JavaVersion.VERSION_1_8\n        targetCompatibility = JavaVersion.VERSION_1_8\n    }\n$1/' "$APP_GRADLE"
+fi
+if ! grep -q "desugar_jdk_libs" "$APP_GRADLE"; then
+  perl -0pi -e 's/(implementation\("org.nanohttpd[^\n]*\n)/$1    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.2")\n/' "$APP_GRADLE"
+fi
+echo "+ release minify off + desugaring"

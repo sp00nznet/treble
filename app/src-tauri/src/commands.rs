@@ -451,18 +451,18 @@ fn quality_arg(lib: &Library) -> String {
 #[cfg(target_os = "android")]
 fn newpipe_resolve(id: &str) -> Option<String> {
     let url = format!("http://127.0.0.1:28923/resolve?id={id}");
-    let body = ureq::get(&url)
-        .timeout(std::time::Duration::from_secs(30))
-        .call()
-        .ok()?
-        .into_string()
-        .ok()?;
-    if body.starts_with("http") {
-        crate::tlog!("resolved on-device via NewPipe ({} chars)", body.len());
-        Some(body)
-    } else {
-        crate::tlog!("on-device NewPipe could not resolve");
-        None
+    match ureq::get(&url).timeout(std::time::Duration::from_secs(35)).call() {
+        Ok(resp) => match resp.into_string() {
+            Ok(body) if body.starts_with("http") => {
+                crate::tlog!("NewPipe resolved on-device ({} chars)", body.len());
+                Some(body)
+            }
+            // The Kotlin side returns the real failure reason — log it so it shows
+            // up in the Treble log (Settings → log path), no adb required.
+            Ok(body) => { crate::tlog!("NewPipe could not resolve: {}", &body[..body.len().min(220)]); None }
+            Err(e) => { crate::tlog!("NewPipe read error: {e}"); None }
+        },
+        Err(e) => { crate::tlog!("NewPipe server unreachable (not started?): {e}"); None }
     }
 }
 #[cfg(not(target_os = "android"))]

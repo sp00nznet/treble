@@ -37,18 +37,14 @@ object NewPipeResolver {
         }
     }
 
-    /** Resolve the best progressive audio URL for a YouTube video id. */
-    fun resolveAudio(id: String): String? {
-        return try {
-            val info = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$id")
-            info.audioStreams
-                .filter { it.isUrl && !it.content.isNullOrEmpty() }
-                .maxByOrNull { it.averageBitrate }
-                ?.content
-        } catch (e: Throwable) {
-            Log.e("Treble", "NewPipe resolve failed for $id: ${e.message}")
-            null
-        }
+    /** Resolve the best progressive audio URL; throws with a useful message on failure. */
+    fun resolveAudio(id: String): String {
+        val info = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$id")
+        return info.audioStreams
+            .filter { it.isUrl && !it.content.isNullOrEmpty() }
+            .maxByOrNull { it.averageBitrate }
+            ?.content
+            ?: throw IllegalStateException("no audio streams (${info.audioStreams.size} total)")
     }
 
     /** Minimal localhost HTTP front-end so the Rust side can call us. */
@@ -57,9 +53,14 @@ object NewPipeResolver {
             "/ping" -> newFixedLengthResponse("newpipe")
             "/resolve" -> {
                 val id = session.parameters["id"]?.firstOrNull()
-                val url = if (!id.isNullOrEmpty()) resolveAudio(id) else null
-                if (url != null) newFixedLengthResponse(url)
-                else newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "resolve failed")
+                if (id.isNullOrEmpty()) newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "missing id")
+                else try {
+                    newFixedLengthResponse(resolveAudio(id))
+                } catch (e: Throwable) {
+                    // Return the real reason so the Rust side can log it (no adb needed).
+                    Log.e("Treble", "NewPipe resolve failed for $id", e)
+                    newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "ERR ${e.javaClass.simpleName}: ${e.message}")
+                }
             }
             else -> newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "not found")
         }
