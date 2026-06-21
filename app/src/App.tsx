@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { useStore } from "./store";
+import { isMobile } from "./lib/windows";
+import { MobileApp } from "./components/MobileApp";
 import { Titlebar } from "./components/Titlebar";
 import { Sidebar } from "./components/Sidebar";
 import { NowPlayingPanel } from "./components/NowPlayingPanel";
@@ -19,11 +21,16 @@ import { Podcast } from "./screens/Podcast";
 import { Settings } from "./screens/Settings";
 import { Placeholder } from "./screens/Placeholder";
 
+// Phones (Android/iOS) get a dedicated mobile shell; `?mobile` forces it for
+// previewing in a desktop browser.
+const MOBILE = isMobile() || (typeof location !== "undefined" && location.search.includes("mobile"));
+
 export function App() {
   const { state, dispatch } = useStore();
 
   // Global keyboard shortcuts: ⌘K / Ctrl+K → search, Esc → close top overlay.
   useEffect(() => {
+    if (MOBILE) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -44,6 +51,7 @@ export function App() {
   // Mouse back/forward (buttons 3 & 4) navigate Treble's own history. `mouseup`
   // only (adding auxclick too would double-fire on a single press).
   useEffect(() => {
+    if (MOBILE) return;
     const onMouse = (e: MouseEvent) => {
       if (e.button === 3) { e.preventDefault(); dispatch({ type: "navBack" }); }
       else if (e.button === 4) { e.preventDefault(); dispatch({ type: "navForward" }); }
@@ -55,6 +63,7 @@ export function App() {
   // Suppress the webview's native context menu everywhere (the "Save as…" junk).
   // Track rows still open Treble's own menu via their React onContextMenu handlers.
   useEffect(() => {
+    if (MOBILE) return;
     const onCtx = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
       if (el.closest("input, textarea")) return; // keep it in text fields
@@ -63,6 +72,8 @@ export function App() {
     document.addEventListener("contextmenu", onCtx);
     return () => document.removeEventListener("contextmenu", onCtx);
   }, []);
+
+  if (MOBILE) return <MobileApp />;
 
   return (
     <div className="app">

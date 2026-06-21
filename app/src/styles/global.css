@@ -368,3 +368,143 @@ textarea {
   height: 100%;
   animation: eqb 0.9s ease-in-out infinite;
 }
+
+/* ============================================================
+   Mobile (Android / iOS) — bottom-tab shell, mini player,
+   vertical now-playing. See design/README §Mobile.
+   ============================================================ */
+.mobile-app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+.mobile-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  padding-top: max(env(safe-area-inset-top), 22px);
+}
+.m-back {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 4px 0 -8px 8px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 2px 8px var(--shadow);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* bottom: mini player above the tab bar */
+.mobile-bottom {
+  flex: none;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mini-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  cursor: pointer;
+}
+.mini-art { width: 44px; height: 44px; border-radius: 8px; flex: none; }
+.mini-meta { flex: 1; min-width: 0; }
+.mini-title { font-size: 14px; font-weight: 700; }
+.mini-sub { font-size: 12px; color: var(--text-2); }
+.tab-bar { display: flex; height: 58px; }
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 600;
+}
+.tab.active { color: var(--accent); }
+
+/* full-screen vertical now-playing */
+.m-np {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: linear-gradient(180deg, var(--accent-soft), var(--bg) 46%);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  padding: max(env(safe-area-inset-top), 14px) 22px calc(env(safe-area-inset-bottom) + 18px);
+}
+.m-np-top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.iconbtn {
+  width: 40px; height: 40px;
+  border: none; background: transparent;
+  color: var(--text);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; cursor: pointer; font-size: 11px; font-weight: 600;
+}
+.m-np-art {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 18px;
+  box-shadow: 0 24px 54px var(--shadow);
+  margin: auto 0 24px;
+  max-height: 46vh;
+  align-self: center;
+}
+.m-np-meta { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+.m-np-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+.m-np-foot { flex: none; display: flex; justify-content: center; margin-top: 18px; }
+.m-lyrics {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  padding-top: max(env(safe-area-inset-top), 14px);
+}
+
+/* adapt the reused screens to phone width */
+.mobile-content .screen { padding: 14px 16px 16px; max-width: none; }
+.mobile-content .grid-5,
+.mobile-content .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.mobile-content .player,
+.mobile-content .titlebar { display: none; }
+.mobile-content .h1 { font-size: 26px; }
