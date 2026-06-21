@@ -9,6 +9,7 @@ import { NowPlaying } from "./components/NowPlaying";
 import { ContextMenu } from "./components/ContextMenu";
 import { MiniPlayer, LyricsWindow } from "./components/FloatingWindows";
 import { AudioEngine } from "./components/AudioEngine";
+import { SyncReceiver } from "./components/SyncReceiver";
 import { ImportModal } from "./components/ImportModal";
 import { Home } from "./screens/Home";
 import { Search } from "./screens/Search";
@@ -86,6 +87,7 @@ export function App() {
 
       {/* the actual sound — headless, syncs <audio> to the store */}
       <AudioEngine />
+      <SyncReceiver />
 
       {/* overlays / floating windows */}
       {state.npOpen && <NowPlaying />}

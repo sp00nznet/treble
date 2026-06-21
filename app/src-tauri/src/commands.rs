@@ -453,7 +453,19 @@ fn quality_arg(lib: &Library) -> String {
 /// Fetch one track to `dir`, emitting `download:progress`. Blocking — callers run
 /// it on a background thread (one-shot for `download_track`, in a loop for
 /// `download_many`). Records the file in the library and ensures the row exists.
-fn run_download(app: &AppHandle, lib: &Library, dir: &Path, quality: &str, track: &Track) {
+/// Resolve a playable stream URL, companion-aware: local yt-dlp (desktop) → a
+/// desktop companion on the LAN (phones) → native client (last resort).
+fn resolve_any(sync: &SyncService, id: &str) -> CmdResult<String> {
+    if tools::ensure_ytdlp() {
+        return catalog::resolve_stream(id);
+    }
+    if let Some(u) = sync.resolve_via_peer(id) {
+        return Ok(u);
+    }
+    catalog::resolve_stream(id)
+}
+
+fn run_download(app: &AppHandle, lib: &Library, dir: &Path, quality: &str, sync: &SyncService, track: &Track) {
     let id = track.id.clone();
     let emit = |pct: f32, done: bool, error: Option<String>| {
         let _ = app.emit("download:progress", DownloadProgress { id: id.clone(), pct, done, error });
@@ -463,12 +475,13 @@ fn run_download(app: &AppHandle, lib: &Library, dir: &Path, quality: &str, track
         emit(100.0, true, None);
         return;
     }
-    // Prefer yt-dlp (best quality + mp3) when available; otherwise fetch the
-    // resolved stream URL directly so downloads work with no external tools.
     let result = if tools::ensure_ytdlp() {
+        // Desktop: yt-dlp downloads best audio as mp3.
         downloads::download(&track.id, dir, quality, |pct| emit(pct, false, None))
     } else {
-        match catalog::resolve_stream(&track.id) {
+        // Phone (no yt-dlp): resolve via a desktop companion, then fetch the audio
+        // directly from Google. This is the offline "Send to device" path.
+        match resolve_any(sync, &track.id) {
             Ok(url) => downloads::download_native(&url, dir, &track.id, |pct| emit(pct, false, None)),
             Err(e) => Err(e),
         }
@@ -487,11 +500,12 @@ fn run_download(app: &AppHandle, lib: &Library, dir: &Path, quality: &str, track
 /// Download a track for offline playback. Runs on a background thread and streams
 /// `download:progress` events; the final event has `done: true`.
 #[tauri::command]
-pub fn download_track(app: AppHandle, lib: State<Arc<Library>>, track: Track) -> CmdResult<()> {
+pub fn download_track(app: AppHandle, lib: State<Arc<Library>>, sync: State<Arc<SyncService>>, track: Track) -> CmdResult<()> {
     let dir = downloads_dir(&app, &lib);
     let quality = quality_arg(&lib);
     let lib = lib.inner().clone();
-    std::thread::spawn(move || run_download(&app, &lib, &dir, &quality, &track));
+    let sync = sync.inner().clone();
+    std::thread::spawn(move || run_download(&app, &lib, &dir, &quality, &sync, &track));
     Ok(())
 }
 
@@ -499,14 +513,15 @@ pub fn download_track(app: AppHandle, lib: State<Arc<Library>>, track: Track) ->
 /// thread, so we never spawn hundreds of yt-dlp processes at once. Each track
 /// streams its own `download:progress` events keyed by track id.
 #[tauri::command]
-pub fn download_many(app: AppHandle, lib: State<Arc<Library>>, tracks: Vec<Track>) -> CmdResult<()> {
+pub fn download_many(app: AppHandle, lib: State<Arc<Library>>, sync: State<Arc<SyncService>>, tracks: Vec<Track>) -> CmdResult<()> {
     let dir = downloads_dir(&app, &lib);
     let quality = quality_arg(&lib);
     let lib = lib.inner().clone();
+    let sync = sync.inner().clone();
     std::thread::spawn(move || {
         crate::tlog!("download_many: {} tracks", tracks.len());
         for t in &tracks {
-            run_download(&app, &lib, &dir, &quality, t);
+            run_download(&app, &lib, &dir, &quality, &sync, t);
         }
         crate::tlog!("download_many: done");
     });

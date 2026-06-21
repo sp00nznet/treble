@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Play, Download, MoreHorizontal, Clock, Pencil, Trash2, Check, X, Star, ChevronUp, ChevronDown, Image as ImageIcon } from "lucide-react";
+import { Play, Download, MoreHorizontal, Clock, Pencil, Trash2, Check, X, Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, MonitorSpeaker, Image as ImageIcon } from "lucide-react";
 import { useStore } from "../store";
 import { PLAYLISTS, TRACKS, ART } from "../data/mock";
-import { getPlaylist, deletePlaylist, renamePlaylist, downloadMany, setRating, pickImage, setPlaylistCover, listLiked, type CorePlaylist } from "../lib/api";
+import { getPlaylist, deletePlaylist, renamePlaylist, downloadMany, setRating, pickImage, setPlaylistCover, listLiked, listPeers, sendTo, type CorePlaylist, type Peer } from "../lib/api";
 import type { Track } from "../types";
 import { isTauri } from "../lib/windows";
 import { artBg, coverBg } from "../lib/art";
@@ -68,6 +68,8 @@ export function Detail() {
   const allDownloaded = baseTracks.length > 0 && baseTracks.every((t) => t.downloaded);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sendPeers, setSendPeers] = useState<Peer[] | null>(null); // non-null = showing the send-to submenu
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
   const [cols, setCols] = useState<ColKey[]>(loadCols);
@@ -223,17 +225,48 @@ export function Detail() {
           <MoreHorizontal size={24} className="press" style={{ color: "var(--text-2)", cursor: "pointer" }} onClick={() => setMenuOpen((o) => !o)} />
           {menuOpen && (
             <>
-              <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-              <div style={{ position: "absolute", top: 30, left: 0, zIndex: 50, width: 180, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 16px 40px var(--shadow)", padding: 6 }}>
-                <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10, opacity: isReal ? 1 : 0.4 }} disabled={!isReal} onClick={() => { setNewName(title); setRenaming(true); setMenuOpen(false); }}>
-                  <Pencil size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Rename</span>
-                </button>
-                <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10, opacity: isReal ? 1 : 0.4 }} disabled={!isReal} onClick={() => { setMenuOpen(false); void replaceCover(); }}>
-                  <ImageIcon size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Replace cover</span>
-                </button>
-                <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10, color: "#e0463e", opacity: isReal ? 1 : 0.4 }} disabled={!isReal} onClick={() => { setMenuOpen(false); void doDelete(); }}>
-                  <Trash2 size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Delete playlist</span>
-                </button>
+              <div onClick={() => { setMenuOpen(false); setSendPeers(null); }} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+              <div style={{ position: "absolute", top: 30, left: 0, zIndex: 50, width: 210, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 16px 40px var(--shadow)", padding: 6 }}>
+                {sendPeers === null ? (
+                  <>
+                    <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10, opacity: isReal ? 1 : 0.4 }} disabled={!isReal} onClick={() => { setNewName(title); setRenaming(true); setMenuOpen(false); }}>
+                      <Pencil size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Rename</span>
+                    </button>
+                    <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10, opacity: isReal ? 1 : 0.4 }} disabled={!isReal} onClick={() => { setMenuOpen(false); void replaceCover(); }}>
+                      <ImageIcon size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Replace cover</span>
+                    </button>
+                    <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10 }} onClick={() => { listPeers().then(setSendPeers); }}>
+                      <MonitorSpeaker size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Send to device</span><ChevronRight size={14} style={{ color: "var(--text-3)" }} />
+                    </button>
+                    <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10, color: "#e0463e", opacity: isReal ? 1 : 0.4 }} disabled={!isReal} onClick={() => { setMenuOpen(false); void doDelete(); }}>
+                      <Trash2 size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Delete playlist</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10 }} onClick={() => setSendPeers(null)}>
+                      <ChevronLeft size={16} /> <span style={{ flex: 1, textAlign: "left" }}>Back</span>
+                    </button>
+                    <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
+                    {sendPeers.length === 0 ? (
+                      <div style={{ padding: "8px 10px", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.5 }}>No devices on your network. Open Treble on your phone (same Wi-Fi).</div>
+                    ) : (
+                      sendPeers.map((p) => (
+                        <button key={p.device_id} className="navitem" style={{ padding: "9px 10px", width: "100%", gap: 10 }}
+                          onClick={() => {
+                            const payload = real ?? { id: state.detailId ?? "", title, subtitle, art, tracks: baseTracks };
+                            void sendTo(p.device_id, { kind: "Playlist", data: payload });
+                            setSentTo(p.device_id);
+                            setTimeout(() => { setSentTo(null); setMenuOpen(false); setSendPeers(null); }, 1100);
+                          }}>
+                          <MonitorSpeaker size={16} style={{ color: "var(--text-2)" }} />
+                          <span className="ellipsis" style={{ flex: 1, textAlign: "left" }}>{p.name}</span>
+                          {sentTo === p.device_id && <span style={{ fontSize: 11, color: "#2BAE66" }}>Sent ✓</span>}
+                        </button>
+                      ))
+                    )}
+                  </>
+                )}
               </div>
             </>
           )}

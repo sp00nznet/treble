@@ -12,6 +12,7 @@ import { coverBg } from "../lib/art";
 import { fmtTime } from "../lib/format";
 import { Scrubber } from "./Scrubber";
 import { AudioEngine } from "./AudioEngine";
+import { SyncReceiver } from "./SyncReceiver";
 import { ContextMenu } from "./ContextMenu";
 import { ImportModal } from "./ImportModal";
 import { Home } from "../screens/Home";
@@ -111,6 +112,7 @@ export function MobileApp() {
       )}
 
       <AudioEngine />
+      <SyncReceiver />
       {state.npOpen && <MobileNowPlaying />}
       <ContextMenu />
       <ImportModal />

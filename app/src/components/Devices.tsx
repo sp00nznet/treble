@@ -8,16 +8,15 @@
 import { useEffect, useState } from "react";
 import { MonitorSpeaker, Send } from "lucide-react";
 import { useStore } from "../store";
-import { listPeers, listen, sendTo, type Peer, type SendMessage, type CorePlaylist } from "../lib/api";
-import type { Track } from "../types";
+import { listPeers, listen, sendTo, type Peer } from "../lib/api";
 
 export function Devices() {
-  const { state, dispatch } = useStore();
+  const { state } = useStore();
   const [peers, setPeers] = useState<Peer[]>([]);
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
 
-  // Discover peers + react to inbound messages.
+  // Discover peers (inbound messages are handled globally by <SyncReceiver/>).
   useEffect(() => {
     let live = true;
     const uns: Array<() => void> = [];
@@ -28,32 +27,11 @@ export function Devices() {
     listen<Peer>("sync:peer-lost", (p) =>
       setPeers((cur) => cur.filter((x) => x.device_id !== p.device_id))
     ).then((u) => uns.push(u));
-    listen<SendMessage>("sync:received", (msg) => handleReceived(msg)).then((u) => uns.push(u));
     return () => {
       live = false;
       uns.forEach((u) => u());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleReceived = (msg: SendMessage) => {
-    if (msg.kind === "Track") {
-      dispatch({ type: "play", track: msg.data as Track });
-      dispatch({ type: "go", screen: "home" });
-    } else if (msg.kind === "Playlist") {
-      const pl = msg.data as CorePlaylist;
-      void import("../lib/api").then(({ importLibrary }) =>
-        importLibrary({ version: 1, device_id: "peer", playlists: [pl] }).then(() => {
-          dispatch({ type: "refreshLibrary" });
-          dispatch({ type: "go", screen: "library" });
-        })
-      );
-    } else {
-      void import("../lib/api").then(({ importLibrary }) =>
-        importLibrary(msg.data).then(() => dispatch({ type: "refreshLibrary" }))
-      );
-    }
-  };
 
   const sendCurrent = async (peer: Peer) => {
     if (!state.nowPlaying) return;
