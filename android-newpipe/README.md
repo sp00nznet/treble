@@ -7,10 +7,22 @@ same extractor NewPipe uses), exposed to the Rust core over `localhost:28923`.
 
 Pieces (see `scripts/apply-newpipe.sh`):
 1. `gen/android/build.gradle.kts` — add the JitPack repo.
-2. `gen/android/app/build.gradle.kts` — add `NewPipeExtractor` + `nanohttpd` deps.
+2. `gen/android/app/build.gradle.kts` — `NewPipeExtractor` + `nanohttpd` + rxjava
+   deps, release minify OFF (R8 breaks Rhino), core-library desugaring.
 3. `gen/android/app/proguard-rules.pro` — keep rules for NewPipeExtractor/Rhino.
-4. `NewPipeResolver.kt` → `gen/android/app/src/main/java/fm/treble/app/`.
-5. `MainActivity.kt` — call `NewPipeResolver.start()` in `onCreate`.
+4. `NewPipeResolver.kt` + `potoken/*.kt` + `po_token.html` — the resolver and the
+   ported NewPipe BotGuard po_token generator (WebView VM) → so YouTube serves
+   non-gated streams. Exposed on `localhost:28923` (`/ping`, `/resolve?id=`).
+5. `MainActivity.kt` — starts the resolver, installs the `TrebleNative` JS bridge,
+   and keeps the WebView (its `<audio>`) alive when backgrounded while playing.
+6. `PlaybackService.kt` + `PlaybackBridge.kt` — a `mediaPlayback` foreground
+   service (+ wake lock) the web UI starts/stops via `window.TrebleNative`. It's
+   **required** for screen-off playback: without a foreground service the app hits
+   Android's background-network firewall (`BLOCKED_REASON_APP_BACKGROUND`) and
+   every DNS lookup fails while the screen is off.
+7. `AndroidManifest.xml` — `ACCESS_NETWORK_STATE`, foreground-service perms, and the
+   `<service>` declaration.
 
 The Rust side (`commands.rs::resolve_any`) calls the localhost resolver first on
-Android; it's tracked normally.
+Android; it's tracked normally. The frontend signal lives in
+`app/src/components/AudioEngine.tsx` (`window.TrebleNative.setPlaying`).

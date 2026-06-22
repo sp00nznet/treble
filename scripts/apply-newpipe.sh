@@ -17,7 +17,7 @@ fi
 
 # 2. Gradle deps
 if ! grep -q "NewPipeExtractor" "$GEN/app/build.gradle.kts"; then
-  perl -0pi -e 's/(implementation\("androidx.lifecycle:lifecycle-process[^\n]*\n)/$1    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.6")\n    implementation("org.nanohttpd:nanohttpd:2.3.1")\n/' "$GEN/app/build.gradle.kts"
+  perl -0pi -e 's/(implementation\("androidx.lifecycle:lifecycle-process[^\n]*\n)/$1    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.26.3")\n    implementation("org.nanohttpd:nanohttpd:2.3.1")\n/' "$GEN/app/build.gradle.kts"
   echo "+ gradle deps"
 fi
 
@@ -42,10 +42,24 @@ fi
 cp "$ROOT/android-newpipe/NewPipeResolver.kt" "$PKG/NewPipeResolver.kt"
 echo "+ NewPipeResolver.kt"
 
-# 5. Start it from MainActivity
-if ! grep -q "NewPipeResolver.start" "$PKG/MainActivity.kt"; then
-  perl -0pi -e 's/(super.onCreate\(savedInstanceState\))/$1\n    NewPipeResolver.start()/' "$PKG/MainActivity.kt"
-  echo "+ MainActivity hook"
+# 5. MainActivity (starts the resolver + installs the playback bridge) and the
+#    foreground media-playback service that keeps audio + network alive screen-off.
+cp "$ROOT/android-newpipe/MainActivity.kt" "$PKG/MainActivity.kt"
+cp "$ROOT/android-newpipe/PlaybackService.kt" "$PKG/PlaybackService.kt"
+cp "$ROOT/android-newpipe/PlaybackBridge.kt" "$PKG/PlaybackBridge.kt"
+echo "+ MainActivity.kt + PlaybackService.kt + PlaybackBridge.kt"
+
+# 5b. Manifest: ACCESS_NETWORK_STATE (resolver) + foreground-service perms/service.
+# INTERNET alone is not enough to inspect/bind networks; the foreground service is
+# what keeps streaming working when the screen turns off (see PlaybackService).
+MANIFEST="$GEN/app/src/main/AndroidManifest.xml"
+if ! grep -q "ACCESS_NETWORK_STATE" "$MANIFEST"; then
+  perl -0pi -e 's{(<uses-permission android:name="android.permission.INTERNET" />)}{$1\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />}' "$MANIFEST"
+  echo "+ network + foreground-service permissions"
+fi
+if ! grep -q "PlaybackService" "$MANIFEST"; then
+  perl -0pi -e 's{(\s*<provider\s+android:name="androidx.core.content.FileProvider")}{\n        <service android:name=".PlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" />\n$1}' "$MANIFEST"
+  echo "+ PlaybackService <service>"
 fi
 echo "done."
 

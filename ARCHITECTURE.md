@@ -30,25 +30,30 @@ through Tauri 2. This document explains how the pieces fit and *why* it's shaped
 ## Why a native Rust catalog (and not just yt-dlp everywhere)?
 
 The user asked for **full desktop/Android parity.** `yt-dlp` is Python — it can't run on Android without
-shipping a Python runtime, which is miserable. So the *catalog* layer (search, browse, metadata, and
-resolving the actual audio stream URL) is **native Rust** via
-[`rustypipe`](https://codeberg.org/ThetaDev/rustypipe), which speaks YouTube's InnerTube API directly.
+shipping a Python runtime, which is miserable. So the *catalog* layer (search, browse, metadata) is
+**native Rust** via [`rustypipe`](https://codeberg.org/ThetaDev/rustypipe), which speaks YouTube's
+InnerTube API directly — **the same compiled code finds music on your laptop and your phone.**
 
-That single choice means **the same compiled code finds and resolves music on your laptop and your
-phone.** `yt-dlp` is then a *desktop-only convenience* for the download step (it handles edge cases and
-formats beautifully); on Android, downloads use the stream URL `rustypipe` already resolved + a native
-fetch.
+**Resolving a *playable* stream is the hard part, and it's platform-specific.** YouTube now gates stream
+URLs behind a `po_token` (BotGuard), so a bare InnerTube call doesn't return a working URL. Treble handles
+it differently per platform:
 
-In the code this lives behind one switch: `catalog::search` / `catalog::resolve_stream` dispatch to
-`catalog_native` (rustypipe, the `native-catalog` cargo feature → Android) or the yt-dlp path (desktop
-default). The frontend contract never changes. The `android:*` npm scripts enable the feature
-automatically.
+- **Desktop:** `yt-dlp` (constantly updated, handles the `po_token`/signature dance) resolves and
+  downloads. `ffmpeg` muxes.
+- **Android:** an embedded copy of **NewPipeExtractor** runs YouTube's player JS locally (via Rhino) and a
+  **ported NewPipe `po_token` generator** mints the token in an offscreen WebView — all **on-device**, no
+  Python and no desktop companion. It's exposed to the Rust core over a localhost HTTP server. See
+  [`android-newpipe/`](android-newpipe/) and [CREDITS.md](CREDITS.md).
+
+`catalog::resolve_stream` dispatches through `resolve_any`: on-device NewPipe (Android) → `yt-dlp`
+(desktop) → a desktop "companion" peer on the LAN (fallback) → native. The frontend contract never changes.
 
 | Concern | Desktop (Win32/Linux) | Android |
 |---|---|---|
 | Search / metadata | `rustypipe` | `rustypipe` (same code) |
-| Resolve audio stream | `rustypipe` | `rustypipe` (same code) |
-| Download to disk | `yt-dlp` + `ffmpeg` (bundled) | native fetch of resolved URL |
+| Resolve playable stream | `yt-dlp` | embedded **NewPipeExtractor** + ported `po_token` (on-device) |
+| Download to disk | `yt-dlp` + `ffmpeg` (bundled) | native fetch of the resolved URL |
+| Background playback | OS-native | foreground media service (keeps streaming with screen off) |
 | Lyrics | LRCLIB | LRCLIB |
 | Library DB | SQLite file | SQLite file |
 

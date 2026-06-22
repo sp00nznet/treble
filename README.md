@@ -23,10 +23,13 @@ Treble is a cross-platform music client with a soul: a warm amber/coral interfac
 a signature "Studio" layout where the now-playing panel lives docked on the right instead of a sad little
 bar at the bottom, and a split-screen lyrics view that actually feels good to read.
 
-Under that pretty face, Treble pulls its catalog from **YouTube Music** (via a fully native Rust
-[InnerTube](https://codeberg.org/ThetaDev/rustypipe) client — so it runs the *same engine* on your laptop
-**and** your phone), downloads tracks for real offline listening, fetches time-synced lyrics, and can
-**import a playlist you already have — straight from your clipboard**.
+Under that pretty face, Treble pulls its catalog from **YouTube Music** (a fully native Rust
+[InnerTube](https://codeberg.org/ThetaDev/rustypipe) client, so search runs the *same* on your laptop
+**and** your phone), streams and downloads tracks for real offline listening — and on Android it resolves
+playable streams **entirely on-device** via embedded
+[NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) and a ported `po_token` generator (no
+desktop companion required) — fetches time-synced lyrics, and can **import a playlist you already have —
+straight from your clipboard**.
 
 > **We did not build the hard parts.** Treble is a nice coat of paint on a *mountain* of work by other
 > people — the folks who reverse-engineered YouTube's API, wrote the downloaders, built the lyrics
@@ -50,9 +53,26 @@ Under that pretty face, Treble pulls its catalog from **YouTube Music** (via a f
   <em>The full-screen immersive player — album art, scrubber, transport, and a time-synced lyrics pane.</em>
 </p>
 
+### …and on Android
+
+*Real screenshots from the sideloaded APK — a phone-native shell (bottom tabs, art-forward player), not the desktop UI crammed onto a phone. YouTube playback resolves **on-device** (no desktop needed) and keeps going with the screen locked.*
+
+<p align="center">
+  <img src="screenshots/and_home.png" width="200" alt="Android home">
+  <img src="screenshots/and_search.png" width="200" alt="Android search">
+  <img src="screenshots/and_nowplaying.png" width="200" alt="Android now playing">
+  <img src="screenshots/and_lyrics.png" width="200" alt="Android lyrics">
+</p>
+<p align="center">
+  <img src="screenshots/and_search_results.png" width="200" alt="Android search results">
+  <img src="screenshots/and_library.png" width="200" alt="Android library">
+  <img src="screenshots/and_settings.png" width="200" alt="Android settings">
+</p>
+
 ## ✨ Features
 
-- 🎧 **Real playback & full downloads** — stream from YouTube Music or save tracks for offline (`yt-dlp` + `ffmpeg` on desktop, native Rust [`rustypipe`](https://codeberg.org/ThetaDev/rustypipe) on mobile).
+- 🎧 **Real playback & full downloads** — stream from YouTube Music or save tracks for offline (`yt-dlp` + `ffmpeg` on desktop).
+- 📲 **On-device streaming on Android** — the phone resolves playable YouTube streams itself via embedded [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) + a ported `po_token`/BotGuard generator, and keeps playing in the background (foreground media service) with the screen locked. No desktop companion needed.
 - 📋 **Playlist import** — paste a playlist (a CSV export, track links, or plain *Title — Artist* lines), hit **Import** in Treble, and we parse it, match every track on YouTube Music, and save it as a real, playable Treble playlist.
 - 🎤 **Time-synced lyrics** — pulled from [LrcLib](https://lrclib.net), highlighting the active line as it plays; click any line to seek. Pop-out window or full-screen split view.
 - 📡 **"Send to…" any device on your Wi-Fi** — cast-style handoff. Treble devices find each other over the LAN (mDNS); right-click a song → **Send to ▸** and it plays on the other device. No cloud, no account, nothing leaves your network.
@@ -97,10 +117,11 @@ treble/
 └── ROADMAP.md               what's done, what's next
 ```
 
-One **Rust core**, three platforms. The catalog/search/stream engine is native Rust
-([`rustypipe`](https://codeberg.org/ThetaDev/rustypipe)) precisely so the *exact same code* powers the
-desktop app and the Android APK — no Python runtime required on your phone. Full story in
-**[ARCHITECTURE.md](ARCHITECTURE.md)**.
+One **Rust core**, three platforms. Catalog & search are native Rust
+([`rustypipe`](https://codeberg.org/ThetaDev/rustypipe)) so the *exact same code* runs on the desktop app
+and the Android APK. Stream resolution is the one platform-specific bit: `yt-dlp` on desktop, and embedded
+[NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) + a ported `po_token` generator on
+Android (no Python runtime required on your phone). Full story in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## 🗺️ Status
 

@@ -57,10 +57,13 @@ Produces a `.deb` and an AppImage under `app/src-tauri/target/release/bundle/`.
 
 > The Android build uses the **native Rust catalog** (`rustypipe`, the `native-catalog` cargo feature)
 > instead of `yt-dlp` — see [ARCHITECTURE.md](../ARCHITECTURE.md). The `android:*` npm scripts pass that
-> feature automatically.
+> feature automatically. Playable streams are resolved **on-device** by an embedded copy of
+> **NewPipeExtractor** plus a ported `po_token` generator (see [`android-newpipe/`](../android-newpipe/)
+> and [CREDITS.md](../CREDITS.md)).
 
-> **One-time setup required.** You need the Android SDK + NDK and `ANDROID_HOME` / `NDK_HOME` set.
-> `scripts/setup-android.md` walks through it; the short version:
+> **One-time setup required.** You need the Android SDK + NDK, `ANDROID_HOME` / `NDK_HOME` set, **and
+> LLVM/libclang** (the native catalog's `rquickjs` generates bindings with bindgen).
+> [`scripts/setup-android.md`](../scripts/setup-android.md) walks through all of it; the short version:
 
 1. Install **Android Studio** (or the command-line tools) and, via the SDK Manager:
    - Android SDK Platform (API 34+)
@@ -79,12 +82,23 @@ Produces a `.deb` and an AppImage under `app/src-tauri/target/release/bundle/`.
    ```bash
    npm run android:init      # wraps `tauri android init`
    ```
-5. Build a sideloadable APK:
+5. Apply the on-device NewPipe integration. `gen/android/` is generated (and git-ignored), so the
+   NewPipe resolver, `po_token` generator, and foreground-playback service live in
+   [`android-newpipe/`](../android-newpipe/) and are (re-)applied by a script — **run this after every
+   `android:init`**:
+   ```bash
+   bash scripts/apply-newpipe.sh
+   ```
+6. Build a sideloadable APK:
    ```bash
    npm run android:build     # wraps `tauri android build --apk`
    ```
    The APK lands in `app/src-tauri/gen/android/app/build/outputs/apk/`. Copy it to your phone and
    install it (enable "install unknown apps" for your file manager).
+
+   > **Windows note:** `tauri android build` needs Developer Mode (for symlinks). If you can't enable it,
+   > use [`scripts/build-apk-windows.ps1`](../scripts/build-apk-windows.ps1), which compiles the core,
+   > stages the native libs into `jniLibs`, runs Gradle, and signs a sideloadable arm64 APK.
 
 For day-to-day testing on a connected device/emulator:
 

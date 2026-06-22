@@ -70,6 +70,21 @@ export function MobileApp() {
     return () => { live = false; clearInterval(t); };
   }, []);
 
+  // Hardware Back (Android): close the lyrics / now-playing overlays or pop the
+  // in-app screen before letting the OS exit the app. MainActivity calls
+  // window.__trebleBack() and reads TrebleNative.setCanBack() to know when to
+  // consume the press vs. pass it through. No-op on desktop/browser.
+  useEffect(() => {
+    const canBack = state.lyricsOpen || state.npOpen || !onTopTab;
+    (window as unknown as { __trebleBack?: () => void }).__trebleBack = () => {
+      if (state.lyricsOpen) dispatch({ type: "setLyrics", open: false });
+      else if (state.npOpen) dispatch({ type: "setNp", open: false });
+      else if (!onTopTab) dispatch({ type: "navBack" });
+    };
+    (window as unknown as { TrebleNative?: { setCanBack?: (b: boolean) => void } })
+      .TrebleNative?.setCanBack?.(canBack);
+  }, [state.lyricsOpen, state.npOpen, onTopTab, state.screen, dispatch]);
+
   return (
     <div className="mobile-app">
       <main className="mobile-content">
@@ -187,7 +202,7 @@ function MobileLyrics() {
         <span style={{ width: 40 }} />
       </div>
       <LyricsBody />
-      <div style={{ flex: "none", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, borderTop: "1px solid var(--border)" }}>
+      <div style={{ flex: "none", padding: "14px 16px", paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)", display: "flex", alignItems: "center", gap: 12, borderTop: "1px solid var(--border)" }}>
         <span className="mini-art" style={{ background: coverBg(state.nowPlaying?.art, state.nowPlaying?.title ?? ""), width: 38, height: 38 }} />
         <span style={{ minWidth: 0, flex: 1 }}>
           <span className="ellipsis" style={{ display: "block", fontSize: 14, fontWeight: 700 }}>{state.nowPlaying?.title}</span>

@@ -1,12 +1,15 @@
+/*
+ * Ported from NewPipe (org.schabi.newpipe.util.potoken.JavaScriptUtil) —
+ * https://github.com/TeamNewPipe/NewPipe — licensed GPLv3, © NewPipe contributors.
+ */
 package fm.treble.app.potoken
 
 import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONObject
 
-// Ported from NewPipe (org.schabi.newpipe.util.potoken), using Android's built-in
-// org.json (NewPipeExtractor bundles its own nanojson fork, which can't be re-added)
-// and android.util.Base64 instead of okio.
+// Adapted for Treble: uses Android's built-in org.json (NewPipeExtractor bundles its
+// own nanojson fork, which can't be re-added) and android.util.Base64 instead of okio.
 
 fun parseChallengeData(rawChallengeData: String): String {
     val scrambled = JSONArray(rawChallengeData)

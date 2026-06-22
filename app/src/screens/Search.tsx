@@ -99,7 +99,7 @@ export function Search() {
               </>
             )}
             <h2 className="h2" style={{ fontSize: 20, marginBottom: 16 }}>Browse all</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+            <div className="genre-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
               {GENRES.map((g) => (
                 <button key={g.label} onClick={() => setQuery(g.label)} className="card press" style={{ height: 120, border: "none", background: g.art, padding: 16, position: "relative", overflow: "hidden", textAlign: "left" }}>
                   <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 19, color: "#fff", textShadow: "0 1px 3px rgba(0,0,0,.2)" }}>{g.label}</span>
@@ -134,7 +134,7 @@ export function Search() {
               <h2 className="h2" style={{ fontSize: 20, marginBottom: 14 }}>{results.length > 0 ? "Songs" : loading ? "Searching…" : error ? "Something went wrong" : "No results"}</h2>
               <div>
                 {results.map((t) => (
-                  <div key={t.id} className="trk" style={{ gridTemplateColumns: "1fr 1fr 70px" }} onClick={() => dispatch({ type: "play", track: t, queue: results })} onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}>
+                  <div key={t.id} className="trk trk-songs" onClick={() => dispatch({ type: "play", track: t, queue: results })} onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                       <span style={{ width: 42, height: 42, borderRadius: 7, flex: "none", background: isArtUrl(t.art) ? `center/cover no-repeat url(${t.art})` : t.art }} />
                       <span style={{ minWidth: 0 }}>
@@ -142,7 +142,7 @@ export function Search() {
                         <span className="ellipsis" style={{ display: "block", fontSize: 12, color: "var(--text-2)" }}>{t.artist}</span>
                       </span>
                     </span>
-                    <span className="ellipsis" style={{ fontSize: 13, color: "var(--text-2)" }}>{t.album}</span>
+                    <span className="ellipsis trk-album" style={{ fontSize: 13, color: "var(--text-2)" }}>{t.album}</span>
                     <span style={{ fontSize: 13, color: "var(--text-3)", textAlign: "right" }}>{t.duration}</span>
                   </div>
                 ))}

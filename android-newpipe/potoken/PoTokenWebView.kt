@@ -1,3 +1,9 @@
+/*
+ * Ported from NewPipe (org.schabi.newpipe.util.potoken.PoTokenWebView) —
+ * https://github.com/TeamNewPipe/NewPipe — licensed GPLv3.
+ * © NewPipe contributors. Adapted for Treble (also GPLv3): runs YouTube's BotGuard
+ * VM in an offscreen WebView to mint po_tokens, outside the NewPipe app.
+ */
 package fm.treble.app.potoken
 
 import android.content.Context

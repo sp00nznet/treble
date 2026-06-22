@@ -1,6 +1,9 @@
+/*
+ * Ported from NewPipe (org.schabi.newpipe.util.potoken) —
+ * https://github.com/TeamNewPipe/NewPipe — GPLv3, © NewPipe contributors.
+ */
 package fm.treble.app.potoken
 
-// Ported from NewPipe (org.schabi.newpipe.util.potoken).
 class PoTokenException(message: String) : Exception(message)
 
 // to be thrown if the WebView provided by the system is broken

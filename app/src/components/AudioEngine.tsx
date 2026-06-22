@@ -133,6 +133,16 @@ export function AudioEngine() {
     if (audioRef.current) audioRef.current.volume = state.volume;
   }, [state.volume]);
 
+  // Android: tell the native foreground-playback service (window.TrebleNative) when
+  // we're playing so streaming + audio survive the screen turning off. No-op on
+  // desktop/browser (the interface only exists in the Android WebView).
+  useEffect(() => {
+    const bridge = (window as unknown as { TrebleNative?: { setPlaying(p: boolean, t: string, a: string): void } }).TrebleNative;
+    if (!bridge?.setPlaying) return;
+    const t = state.nowPlaying;
+    bridge.setPlaying(!!(state.playing && t), t?.title ?? "", t?.artist ?? "");
+  }, [state.playing, state.nowPlaying]);
+
   // Auto-download: cache streamed tracks for offline as they play, when enabled.
   useEffect(() => {
     const t = state.nowPlaying;

@@ -223,6 +223,7 @@ textarea {
   border-radius: var(--r-row);
   cursor: pointer;
 }
+.trk-songs { grid-template-columns: 1fr 1fr 70px; }
 .trk:hover {
   background: var(--surface-2);
 }
@@ -452,7 +453,9 @@ textarea {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: linear-gradient(180deg, var(--accent-soft), var(--bg) 46%);
+  /* opaque --bg base under the (translucent) accent-soft gradient, else the screen
+     behind shows through the top of the overlay. */
+  background: linear-gradient(180deg, var(--accent-soft), var(--bg) 46%), var(--bg);
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -508,3 +511,19 @@ textarea {
 .mobile-content .player,
 .mobile-content .titlebar { display: none; }
 .mobile-content .h1 { font-size: 26px; }
+/* Genre browse: 4 columns is too narrow on a phone (clips "Electronic" etc.). */
+.mobile-content .genre-grid { grid-template-columns: repeat(2, 1fr) !important; }
+/* Header action buttons go icon-only so the row can't overflow the viewport. */
+.mobile-content .btn-label { display: none; }
+/* Filter/segment chip rows scroll horizontally instead of clipping off-screen. */
+.mobile-content .chip-row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.mobile-content .chip-row::-webkit-scrollbar { display: none; }
+.mobile-content .chip-row > .chip { flex: none; }
+/* Song rows: drop the album column so titles get the full width (no early "…"). */
+.mobile-content .trk-songs { grid-template-columns: 1fr auto !important; }
+.mobile-content .trk-songs .trk-album { display: none; }

@@ -65,9 +65,11 @@ object NewPipeResolver {
                 else try {
                     newFixedLengthResponse(resolveAudio(id))
                 } catch (e: Throwable) {
-                    // Return the real reason so the Rust side can log it (no adb needed).
-                    Log.e("Treble", "NewPipe resolve failed for $id", e)
-                    newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "ERR ${e.javaClass.simpleName}: ${e.message}")
+                    val sw = java.io.StringWriter()
+                    e.printStackTrace(java.io.PrintWriter(sw))
+                    val trace = sw.toString()
+                    Log.e("Treble", "resolve failed for $id:\n$trace")
+                    newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", trace)
                 }
             }
             else -> newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "not found")

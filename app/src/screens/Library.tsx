@@ -62,14 +62,14 @@ export function Library() {
             onClick={addFolder}
             disabled={scanning}
           >
-            {scanning ? <Loader2 size={16} className="spin" /> : <FolderPlus size={16} />} {scanning ? "Scanning…" : "Add music folder"}
+            {scanning ? <Loader2 size={16} className="spin" /> : <FolderPlus size={16} />} <span className="btn-label">{scanning ? "Scanning…" : "Add music folder"}</span>
           </button>
           <button
             className="chip press"
             style={{ display: "flex", alignItems: "center", gap: 7 }}
             onClick={() => dispatch({ type: "setImport", open: true })}
           >
-            <Import size={16} /> Import
+            <Import size={16} /> <span className="btn-label">Import</span>
           </button>
           <button
             className="chip active press"
@@ -80,12 +80,12 @@ export function Library() {
               dispatch({ type: "openDetail", id: pl.id });
             }}
           >
-            <Plus size={16} /> New
+            <Plus size={16} /> <span className="btn-label">New</span>
           </button>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+      <div className="chip-row" style={{ display: "flex", gap: 8, marginBottom: 24 }}>
         {TABS.map((t) => (
           <button key={t} className={`chip${tab === t ? " active" : ""}`} onClick={() => dispatch({ type: "setLibTab", tab: t })}>
             {t}
@@ -144,7 +144,7 @@ function SongsTab() {
         items={tracks}
         rowHeight={56}
         renderRow={(t) => (
-          <div className="trk" style={{ gridTemplateColumns: "1fr 1fr 60px", height: "100%" }} onClick={() => dispatch({ type: "play", track: t, queue: tracks })} onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}>
+          <div className="trk trk-songs" style={{ height: "100%" }} onClick={() => dispatch({ type: "play", track: t, queue: tracks })} onContextMenu={(e) => { e.preventDefault(); dispatch({ type: "openMenu", x: e.clientX, y: e.clientY, track: t }); }}>
             <span style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
               <span className="trk-art" style={{ background: artBg(t.art) }} />
               <span style={{ minWidth: 0 }}>
@@ -152,7 +152,7 @@ function SongsTab() {
                 <span className="ellipsis" style={{ display: "block", fontSize: 12, color: "var(--text-2)" }}>{t.artist}</span>
               </span>
             </span>
-            <span className="ellipsis" style={{ fontSize: 13, color: "var(--text-2)" }}>{t.album}</span>
+            <span className="ellipsis trk-album" style={{ fontSize: 13, color: "var(--text-2)" }}>{t.album}</span>
             <span style={{ fontSize: 13, color: "var(--text-3)", textAlign: "right" }}>{t.duration}</span>
           </div>
         )}

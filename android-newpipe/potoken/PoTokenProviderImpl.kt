@@ -1,3 +1,8 @@
+/*
+ * Ported from NewPipe (org.schabi.newpipe.util.potoken.PoTokenProviderImpl) —
+ * https://github.com/TeamNewPipe/NewPipe — licensed GPLv3.
+ * © NewPipe contributors. Adapted for Treble (also GPLv3).
+ */
 package fm.treble.app.potoken
 
 import android.content.Context

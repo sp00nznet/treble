@@ -13,9 +13,23 @@ If you enjoy Treble, the kindest thing you can do is **go star their repositorie
 | Project | What Treble uses it for | Link |
 |---|---|---|
 | **yt-dlp** | The gold-standard media downloader. Powers full-quality desktop downloads. | https://github.com/yt-dlp/yt-dlp |
-| **RustyPipe** (ThetaDev) | Native Rust client for the YouTube / YouTube Music InnerTube API. This is *the* reason Treble can run the same catalog engine on desktop **and** Android. | https://codeberg.org/ThetaDev/rustypipe |
-| **NewPipe / NewPipeExtractor** | The original reverse-engineering of YouTube's private API that this whole ecosystem descends from. | https://newpipe.net · https://github.com/TeamNewPipe/NewPipeExtractor |
+| **RustyPipe** (ThetaDev) | Native Rust client for the YouTube / YouTube Music InnerTube API — powers catalog & search on every platform. | https://codeberg.org/ThetaDev/rustypipe |
+| **NewPipe / NewPipeExtractor** | The original reverse-engineering of YouTube's private API that this whole ecosystem descends from. Treble **embeds NewPipeExtractor** to resolve playable streams on Android *on-device* — and **ports NewPipe's `po_token` / BotGuard generator** (see below). | https://newpipe.net · https://github.com/TeamNewPipe/NewPipeExtractor |
 | **FFmpeg** | Audio muxing, transcoding, and format conversion for downloads. | https://ffmpeg.org |
+
+### 📱 On-device Android streaming (a direct code port)
+
+Standalone YouTube playback on the phone — no desktop companion — is built **directly on NewPipe's code**,
+not just inspired by it. The following are ported into `android-newpipe/` (GPLv3, © NewPipe contributors),
+adapted only to run outside the NewPipe app:
+
+| Borrowed | From | Notes |
+|---|---|---|
+| `po_token` / BotGuard generator (`PoTokenWebView`, `PoTokenProviderImpl`, helpers, `po_token.html`) | [NewPipe](https://github.com/TeamNewPipe/NewPipe) (GPLv3) | Runs YouTube's BotGuard VM in an offscreen WebView to mint the `po_token` YouTube now requires for playback. Every ported file keeps a NewPipe attribution header. |
+| BotGuard VM approach behind `po_token.html` | [BgUtils — LuanRT](https://github.com/LuanRT/BgUtils) | NewPipe's runner adapts LuanRT's BotGuard work; credited upstream of us. |
+| **NanoHTTPD** | https://github.com/NanoHttpd/nanohttpd (BSD-3) | Tiny localhost HTTP server that exposes the on-device resolver to the Rust core. |
+| **RxJava / RxAndroid** | https://github.com/ReactiveX/RxJava (Apache-2.0) | Async plumbing the ported `po_token` generator depends on. |
+| **Mozilla Rhino** | https://github.com/mozilla/rhino (MPL-2.0) | Runs YouTube's player JS for signature deobfuscation; pulled in transitively by NewPipeExtractor. |
 
 ## 🎤 Lyrics
 
