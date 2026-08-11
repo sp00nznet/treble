@@ -1,7 +1,7 @@
 {
   "name": "treble",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Treble — warm, cross-platform music client (Tauri + React + TypeScript). Built from the Treble design handoff.",
   "scripts": {
@@ -11,7 +11,7 @@
     "tauri": "tauri",
     "desktop": "tauri dev",
     "clean:core": "cargo clean -p treble --manifest-path src-tauri/Cargo.toml",
-    "desktop:build": "npm run clean:core && tauri build",
+    "desktop:build": "npm run fetch-tools && npm run clean:core && tauri build",
     "android": "tauri android dev --features native-catalog",
     "android:init": "tauri android init",
     "android:build": "tauri android build --apk --features native-catalog",

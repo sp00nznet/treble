@@ -1,0 +1,159 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to attach the installers/APK to a release
+
+env:
+  # Pinned rather than $ANDROID_NDK_LATEST_HOME so a runner image bumping its NDK
+  # can't quietly change what we ship. Same version scripts/build-apk-windows.ps1 uses.
+  NDK_VERSION: '26.1.10909125'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Without this every run recompiles rustypipe + reqwest from scratch.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+
+      - run: npm ci
+        working-directory: app
+
+      # Network-dependent tests are #[ignore]d, so this stays offline and honest.
+      - run: cargo test --locked
+        working-directory: app/src-tauri
+
+      # fetch-tools (yt-dlp, which desktop needs to resolve any stream at all) then
+      # `tsc && vite build` (beforeBuildCommand), then the NSIS + MSI bundles.
+      - run: npm run desktop:build
+        working-directory: app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treble-windows-x64
+          path: |
+            app/src-tauri/target/release/bundle/nsis/*.exe
+            app/src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - run: sdkmanager --install "ndk;${{ env.NDK_VERSION }}"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+          key: android
+
+      # The native catalog's rquickjs generates bindings with bindgen, which needs
+      # libclang and — because we're cross-compiling — the NDK's sysroot.
+      - run: sudo apt-get update && sudo apt-get install -y clang libclang-dev
+
+      - run: npm ci
+        working-directory: app
+
+      # gen/android is generated and gitignored, so it's `init` then re-apply the
+      # on-device NewPipe resolver / po_token / playback service on top of it.
+      # ANDROID_HOME comes from the runner image, so it's expanded by the shell here,
+      # not by ${{ }} — the expression context wouldn't see it.
+      - name: Generate and patch the Android project
+        run: |
+          export NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION"
+          npm run android:init --prefix app
+          bash scripts/apply-newpipe.sh
+
+      # arm64 only: every extra ABI is another full Rust build of a large dep tree,
+      # and arm64 is every phone made in the last several years.
+      - name: Build the APK
+        working-directory: app
+        run: |
+          export NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION"
+          export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+          npm run android:build -- --target aarch64
+
+      # Android refuses to install an unsigned APK. With the release keystore in
+      # secrets, builds upgrade over each other; without it, they don't — hence the
+      # warning rather than a silent throwaway key.
+      - name: Sign the APK
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./app/src-tauri/tauri.conf.json').version")
+          unsigned=$(find app/src-tauri/gen/android/app/build/outputs/apk -name '*-release-unsigned.apk' | head -1)
+          tools="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          ks="$RUNNER_TEMP/treble.keystore"
+          if [ -n "${KEYSTORE_B64:-}" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$ks"
+            pass="$KEYSTORE_PASS"
+          else
+            echo "::warning::No ANDROID_KEYSTORE_B64 secret — signing with a throwaway key. Users will have to uninstall any previous Treble before installing this build."
+            pass=treble123
+            keytool -genkeypair -keystore "$ks" -alias treble -keyalg RSA -keysize 2048 \
+              -validity 10000 -storepass "$pass" -keypass "$pass" -dname 'CN=Treble, O=Treble, C=US'
+          fi
+          "$tools/zipalign" -f -p 4 "$unsigned" "$RUNNER_TEMP/aligned.apk"
+          "$tools/apksigner" sign --ks "$ks" --ks-pass "pass:$pass" --key-pass "pass:$pass" \
+            --out "Treble-$version-arm64.apk" "$RUNNER_TEMP/aligned.apk"
+          "$tools/apksigner" verify --print-certs "Treble-$version-arm64.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treble-android-arm64
+          path: Treble-*-arm64.apk
+          if-no-files-found: error
+
+  # One job publishes, rather than each build job racing to create the same release.
+  release:
+    needs: [windows, android]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true

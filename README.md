@@ -6,6 +6,7 @@
 
 **Win32 · Linux · Android — one warm amber UI, your whole library, everywhere.**
 
+[![build](https://github.com/sp00nznet/treble/actions/workflows/build.yml/badge.svg)](https://github.com/sp00nznet/treble/actions/workflows/build.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-E2622E.svg)](LICENSE)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-FF9A5C.svg)](https://tauri.app)
 [![Rust core](https://img.shields.io/badge/core-Rust-FF6B5C.svg)](https://www.rust-lang.org/)
@@ -81,6 +82,12 @@ straight from your clipboard**.
 - 🌗 **Light + dark, 4 accents** — Amber, Coral, Rose, Gold. Instant theme swap, no reload.
 - 🪟 **Pop-out mini-player & lyrics windows** — real always-on-top windows on desktop.
 - 📱 **Actually cross-platform** — Win32, Ubuntu/Linux, and a **sideloadable Android APK** from one codebase.
+
+## 📥 Download
+
+Windows installer and a sideloadable arm64 Android APK on the
+**[Releases page](https://github.com/sp00nznet/treble/releases/latest)**. Desktop transcoding wants
+`ffmpeg` on your PATH; `yt-dlp` ships inside the installer.
 
 ## 🚀 Quick start
 

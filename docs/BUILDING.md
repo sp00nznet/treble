@@ -23,7 +23,9 @@ binaries for your OS into `app/src-tauri/binaries/` once:
 npm run fetch-tools     # downloads yt-dlp + ffmpeg for your platform
 ```
 
-(The script is in `scripts/fetch-tools.mjs`; `binaries/` is git-ignored.)
+(The script is in `scripts/fetch-tools.mjs`; `binaries/` is git-ignored.) `bundle.resources` copies
+`binaries/` next to the installed exe, so `desktop:build` runs `fetch-tools` itself — an installer
+whose app can't resolve a single stream isn't worth shipping.
 
 ## Run (development)
 
@@ -104,6 +106,26 @@ For day-to-day testing on a connected device/emulator:
 
 ```bash
 npm run android          # tauri android dev
+```
+
+## Releases (CI)
+
+[`.github/workflows/build.yml`](../.github/workflows/build.yml) builds the Windows installers and the
+arm64 APK on every push, and on a `v*` tag attaches them to a GitHub Release:
+
+```bash
+# bump the version in app/package.json, app/src-tauri/Cargo.toml and tauri.conf.json first
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+**APK signing.** Without secrets the workflow signs with a throwaway key, which means a new release
+can't install over an older one. To sign with the real keystore, add two repo secrets
+(*Settings → Secrets and variables → Actions*):
+
+```powershell
+# ANDROID_KEYSTORE_B64
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("treble.keystore")) | Set-Clipboard
+# ANDROID_KEYSTORE_PASS — the keystore/key password (both must match)
 ```
 
 ## Troubleshooting
