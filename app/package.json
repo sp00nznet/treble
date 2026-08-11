@@ -1,7 +1,7 @@
 {
   "name": "treble",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Treble — warm, cross-platform music client (Tauri + React + TypeScript). Built from the Treble design handoff.",
   "scripts": {

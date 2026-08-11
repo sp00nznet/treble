@@ -1,6 +1,6 @@
 [package]
 name = "treble"
-version = "0.1.0"
+version = "0.1.1"
 description = "Treble — warm cross-platform music client"
 authors = ["sp00nznet"]
 edition = "2021"
