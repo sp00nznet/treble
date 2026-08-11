@@ -9,7 +9,7 @@
  *         node scripts/fetch-tools.mjs (from repo root)
  */
 import { mkdir, chmod } from "node:fs/promises";
-import { createWriteStream } from "node:fs";
+import { createWriteStream, existsSync } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -42,9 +42,15 @@ async function main() {
 
   const ytName = os === "win32" ? "yt-dlp.exe" : "yt-dlp";
   const ytDest = join(outDir, ytName);
-  console.log("Fetching yt-dlp …");
-  await download(ytUrl, ytDest);
-  if (os !== "win32") await chmod(ytDest, 0o755);
+  // `desktop:build` calls this every time, so an existing binary is left alone —
+  // delete it to pick up a newer yt-dlp.
+  if (existsSync(ytDest)) {
+    console.log(`yt-dlp already present → ${ytDest} (delete it to re-fetch)`);
+  } else {
+    console.log("Fetching yt-dlp …");
+    await download(ytUrl, ytDest);
+    if (os !== "win32") await chmod(ytDest, 0o755);
+  }
 
   console.log(`\n✓ yt-dlp → ${ytDest}`);
   console.log(

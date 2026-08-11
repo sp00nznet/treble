@@ -19,9 +19,9 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -37,16 +37,22 @@ jobs:
       - run: npm ci
         working-directory: app
 
+      # Before cargo touches anything: tauri.windows.conf.json ships binaries/ as a
+      # bundle resource, and that glob is validated in build.rs — so an empty
+      # binaries/ fails `cargo test`, not just the bundle.
+      - run: npm run fetch-tools
+        working-directory: app
+
       # Network-dependent tests are #[ignore]d, so this stays offline and honest.
       - run: cargo test --locked
         working-directory: app/src-tauri
 
-      # fetch-tools (yt-dlp, which desktop needs to resolve any stream at all) then
-      # `tsc && vite build` (beforeBuildCommand), then the NSIS + MSI bundles.
+      # fetch-tools again (a no-op now the binary is there), `tsc && vite build`
+      # (beforeBuildCommand), then the NSIS + MSI bundles.
       - run: npm run desktop:build
         working-directory: app
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: treble-windows-x64
           path: |
@@ -57,15 +63,15 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -136,7 +142,7 @@ jobs:
             --out "Treble-$version-arm64.apk" "$RUNNER_TEMP/aligned.apk"
           "$tools/apksigner" verify --print-certs "Treble-$version-arm64.apk"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: treble-android-arm64
           path: Treble-*-arm64.apk
@@ -148,7 +154,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           path: dist
 

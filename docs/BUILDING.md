@@ -23,9 +23,15 @@ binaries for your OS into `app/src-tauri/binaries/` once:
 npm run fetch-tools     # downloads yt-dlp + ffmpeg for your platform
 ```
 
-(The script is in `scripts/fetch-tools.mjs`; `binaries/` is git-ignored.) `bundle.resources` copies
-`binaries/` next to the installed exe, so `desktop:build` runs `fetch-tools` itself — an installer
-whose app can't resolve a single stream isn't worth shipping.
+(The script is in `scripts/fetch-tools.mjs`; `binaries/` is git-ignored. Re-running it is a no-op
+once the binary is there — delete the file to pick up a newer `yt-dlp`.)
+
+`bundle.resources` in `tauri.windows.conf.json` / `tauri.linux.conf.json` copies `binaries/` next to
+the installed exe, so `desktop:build` runs `fetch-tools` itself — an installer whose app can't
+resolve a single stream isn't worth shipping. That glob is validated in `build.rs`, so **a desktop
+`cargo check`/`cargo test` also needs `binaries/` to be non-empty** — run `fetch-tools` once after
+cloning. It's kept out of `tauri.conf.json` deliberately: Android resolves streams on-device and
+must not carry a desktop binary.
 
 ## Run (development)
 
