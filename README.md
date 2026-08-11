@@ -86,8 +86,8 @@ straight from your clipboard**.
 ## 📥 Download
 
 Windows installer and a sideloadable arm64 Android APK on the
-**[Releases page](https://github.com/sp00nznet/treble/releases/latest)**. Desktop transcoding wants
-`ffmpeg` on your PATH; `yt-dlp` ships inside the installer.
+**[Releases page](https://github.com/sp00nznet/treble/releases/latest)**. `yt-dlp` and `ffmpeg` ship
+inside the installer, so downloads work with nothing else installed.
 
 ## 🚀 Quick start
 

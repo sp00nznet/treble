@@ -16,15 +16,17 @@ npm install
 
 ### Bundled tools (yt-dlp + ffmpeg)
 
-Desktop downloads use `yt-dlp` and `ffmpeg`. They are **not** committed to the repo; fetch the right
-binaries for your OS into `app/src-tauri/binaries/` once:
+Desktop downloads use `yt-dlp`, which transcodes to mp3 by invoking `ffmpeg` — so a download fails
+outright without both. They are **not** committed to the repo; fetch the right binaries for your OS
+into `app/src-tauri/binaries/` once:
 
 ```bash
 npm run fetch-tools     # downloads yt-dlp + ffmpeg for your platform
 ```
 
 (The script is in `scripts/fetch-tools.mjs`; `binaries/` is git-ignored. Re-running it is a no-op
-once the binary is there — delete the file to pick up a newer `yt-dlp`.)
+once a binary is there — delete one to pick up a newer build. The ffmpeg archive is ~100 MB and
+only the `ffmpeg` binary is kept; the Windows URL is pinned to a Gyan release, bump it by hand.)
 
 `bundle.resources` in `tauri.windows.conf.json` / `tauri.linux.conf.json` copies `binaries/` next to
 the installed exe, so `desktop:build` runs `fetch-tools` itself — an installer whose app can't
